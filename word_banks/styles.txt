@@ -1,0 +1,64 @@
+# Style modifiers for style_shuffle strategy
+cinematic lighting
+photorealistic
+hyperrealistic
+oil painting style
+watercolor style
+digital art
+concept art
+matte painting
+film grain
+bokeh
+tilt-shift
+long exposure
+double exposure
+macro photography
+aerial view
+wide angle
+fisheye lens
+35mm photography
+medium format film
+analog photography
+studio lighting
+rim lighting
+volumetric lighting
+chiaroscuro
+high contrast
+low key lighting
+high key lighting
+natural lighting
+golden hour
+blue hour
+neon lights
+cyberpunk aesthetic
+steampunk style
+art nouveau
+art deco
+impressionist style
+surrealist
+minimalist
+maximalist
+baroque style
+renaissance style
+ukiyo-e style
+pixel art
+vaporwave aesthetic
+synthwave
+retrowave
+noir style
+gothic style
+fantasy art
+sci-fi concept art
+isometric view
+orthographic
+cel shaded
+line art
+ink wash
+charcoal drawing
+pencil sketch
+pastel colors
+monochrome
+duotone
+cross-processed
+infrared photography
+cyanotype

@@ -1,0 +1,31 @@
+# Adjectives word bank for synonym_swap strategy
+# Categories: visual, texture, lighting, atmosphere, scale
+
+# Visual
+beautiful=stunning,gorgeous,breathtaking,magnificent,exquisite
+vibrant=vivid,colorful,saturated,rich,bold
+dark=shadowy,dim,murky,gloomy,somber
+bright=luminous,radiant,brilliant,gleaming,glowing
+soft=gentle,delicate,tender,subtle,muted
+
+# Texture
+smooth=sleek,polished,silky,glossy,refined
+rough=textured,rugged,coarse,gritty,weathered
+detailed=intricate,elaborate,complex,ornate,meticulous
+sharp=crisp,defined,precise,clear,fine
+
+# Lighting
+golden=amber,warm,honeyed,gilded,sunlit
+dramatic=intense,striking,bold,powerful,commanding
+ethereal=otherworldly,dreamlike,mystical,celestial,transcendent
+
+# Atmosphere
+serene=tranquil,peaceful,calm,placid,still
+moody=atmospheric,evocative,brooding,pensive,melancholic
+epic=grand,majestic,monumental,sweeping,vast
+mysterious=enigmatic,arcane,cryptic,obscure,veiled
+
+# Scale
+massive=enormous,colossal,towering,immense,gigantic
+tiny=miniature,minute,microscopic,diminutive,petite
+vast=expansive,boundless,infinite,sprawling,limitless
