@@ -119,7 +119,7 @@ class CRONScheduler:
     """Re-queues workflow on cron schedule via background thread."""
 
     CATEGORY = "Pipeline Automation"
-    RETURN_TYPES = ("STRING", "IMAGE")
+    RETURN_TYPES = ("STRING", "*")
     RETURN_NAMES = ("status", "passthrough")
     FUNCTION = "schedule"
 
@@ -136,7 +136,7 @@ class CRONScheduler:
             },
             "optional": {
                 "external_command": ("STRING", {"default": ""}),
-                "passthrough": ("IMAGE",),
+                "passthrough": ("*",),
                 "is_complete": ("BOOLEAN", {"default": False}),
             },
         }

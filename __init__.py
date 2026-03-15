@@ -1,15 +1,18 @@
-"""ComfyUI Pipeline Automation Node Pack — registers all 5 nodes."""
+"""ComfyUI Pipeline Automation Node Pack."""
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 WEB_DIRECTORY = None
 
 try:
-    from .nodes import SaveAs, APICall, BulkPrompter, PipelineController, CRONScheduler
+    from .nodes import (SaveAs, APICall, BulkPrompter, CRONScheduler,
+                        LLMConfig, GapScannerNode, PromptGenerator)
 
     NODE_CLASS_MAPPINGS = {
         "CRONScheduler": CRONScheduler,
-        "PipelineController": PipelineController,
+        "GapScanner": GapScannerNode,
+        "PromptGenerator": PromptGenerator,
+        "LLMConfig": LLMConfig,
         "SaveAs": SaveAs,
         "APICall": APICall,
         "BulkPrompter": BulkPrompter,
@@ -17,7 +20,9 @@ try:
 
     NODE_DISPLAY_NAME_MAPPINGS = {
         "CRONScheduler": "CRON Scheduler",
-        "PipelineController": "Pipeline Controller",
+        "GapScanner": "Gap Scanner",
+        "PromptGenerator": "Prompt Generator",
+        "LLMConfig": "LLM Config",
         "SaveAs": "Save As",
         "APICall": "API Call",
         "BulkPrompter": "Bulk Prompter",

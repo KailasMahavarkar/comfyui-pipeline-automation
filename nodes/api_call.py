@@ -6,7 +6,7 @@ import urllib.request
 import urllib.error
 import logging
 
-from ..lib.response_parser import walk_dot_path, extract_mappings, auto_parse_json
+from ..lib.response_parser import extract_mappings, auto_parse_json
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,7 @@ class APICall:
                 "retry_delay": ("INT", {"default": 2, "min": 1, "max": 30}),
             },
             "optional": {
+                "llm_config": ("LLM_CONFIG",),
                 "api_key": ("STRING", {"default": ""}),
                 "headers": ("STRING", {"multiline": True, "default": ""}),
                 "topic": ("STRING", {"default": ""}),
@@ -41,7 +42,13 @@ class APICall:
 
     def call_api(self, api_preset, api_url, method, request_template,
                  response_mapping, timeout, max_retries, retry_delay,
-                 api_key="", headers="", topic=""):
+                 llm_config=None, api_key="", headers="", topic=""):
+
+        # LLM_CONFIG overrides manual fields when connected
+        if llm_config:
+            api_url = api_url or llm_config.get("api_url", "")
+            api_key = api_key or llm_config.get("api_key", "")
+            api_preset = "openai_compatible"
 
         if not api_url:
             return ("", "", "{}", '{"error": "No API URL provided"}')

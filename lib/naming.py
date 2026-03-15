@@ -35,8 +35,15 @@ def _next_counter():
         return val
 
 
+def sanitize_name(name: str) -> str:
+    """Convert string to filesystem-safe, lowercase form."""
+    name = re.sub(r'[<>:"/\\|?*]', '_', name)
+    name = re.sub(r'\s+', '_', name)
+    return name.strip('._').lower()
+
+
 def _sanitize(value: str) -> str:
-    """Replace filesystem-unsafe characters."""
+    """Replace filesystem-unsafe characters (preserves case)."""
     value = re.sub(r'[<>:"/\\|?*]', '_', value)
     value = re.sub(r'\s+', '_', value)
     return value.strip('._')

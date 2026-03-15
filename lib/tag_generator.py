@@ -77,6 +77,7 @@ def lookup_topic_bank(topic: str, topic_tag_bank: dict | str | None) -> dict:
 
 def generate_via_llm(topic: str, base_prompt: str,
                      api_url: str, api_key: str, model: str,
+                     temperature: float = 0.7, max_tokens: int = 200,
                      max_retries: int = 3) -> dict | None:
     """Layer 3: Call LLM API to generate categorized tags.
 
@@ -100,8 +101,8 @@ def generate_via_llm(topic: str, base_prompt: str,
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ],
-        "temperature": 0.7,
-        "max_tokens": 200,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
     }).encode("utf-8")
 
     headers = {
@@ -177,6 +178,8 @@ def generate_tags(topic: str, base_prompt: str, resolution: str = "",
             api_url=llm_config["api_url"],
             api_key=llm_config.get("api_key", ""),
             model=llm_config.get("model", "gpt-3.5-turbo"),
+            temperature=llm_config.get("temperature", 0.7),
+            max_tokens=llm_config.get("max_tokens", 200),
         )
         if llm_tags:
             llm_content = llm_tags.get("content", [])
