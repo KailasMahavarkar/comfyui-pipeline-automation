@@ -1,0 +1,33 @@
+flowchart TD
+    GS["Gap Scanner"]
+    LC["LLM Config"]
+
+    GS -- "topic / resolution / variant_index\nPIPELINE_CONFIG" --> PG["Prompt Generator"]
+    GS -- "width / height" --> EL["Empty Latent Image"]
+    LC -- "LLM_CONFIG" --> PG
+    LC -. "LLM_CONFIG" .-> AC["API Call"]
+
+    PG -- "prompt" --> CLIP_P["CLIP Text Encode (+)"]
+    PG -- "negative_prompt" --> CLIP_N["CLIP Text Encode (-)"]
+
+    CLIP_P --> KS["KSampler"]
+    CLIP_N --> KS
+    EL --> KS
+
+    KS --> VAE["VAE Decode"]
+    VAE -- "image" --> CS["CRON Scheduler"]
+    GS -. "is_complete" .-> CS
+
+    CS -- "passthrough (*)" --> SA["Save As"]
+    GS -. "PIPELINE_CONFIG" .-> SA
+    PG -. "metadata" .-> SA
+
+    BP["Bulk Prompter"]
+
+    classDef blue fill:#a5d8ff,stroke:#1971c2,color:#1864ab,stroke-width:2px,font-weight:bold
+    classDef grey fill:#e9ecef,stroke:#868e96,color:#495057,stroke-width:1px
+    classDef purple fill:#d0bfff,stroke:#7048e8,color:#5f3dc4,stroke-width:2px
+
+    class GS,LC,PG,CS,SA blue
+    class EL,CLIP_P,CLIP_N,KS,VAE grey
+    class AC,BP purple

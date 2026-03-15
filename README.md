@@ -96,55 +96,9 @@ Generates N prompt variants from a base prompt using local mutation strategies. 
 
 ## Pipeline Workflow
 
-```mermaid
-flowchart LR
-    subgraph Config
-        LC[LLM Config]
-        GS[Gap Scanner]
-    end
+![Pipeline Flow](docs/pipeline-flow.png)
 
-    subgraph Generation
-        PG[Prompt Generator]
-        EL[Empty Latent]
-        CLIP[CLIP Encode +/-]
-        KS[KSampler]
-        VAE[VAE Decode]
-    end
-
-    subgraph Output
-        CS[CRON Scheduler]
-        SA[Save As]
-    end
-
-    GS -- topic / resolution / variant_index --> PG
-    GS -- PIPELINE_CONFIG --> PG
-    GS -- PIPELINE_CONFIG --> SA
-    GS -- width / height --> EL
-    GS -- is_complete --> CS
-    LC -- LLM_CONFIG --> PG
-    LC -. LLM_CONFIG .-> AC[API Call]
-
-    PG -- prompt / negative --> CLIP
-    PG -- metadata --> SA
-    CLIP --> KS
-    EL --> KS
-    KS --> VAE
-    VAE -- image --> CS
-    CS -- "passthrough&nbsp;(*)" --> SA
-
-    style LC fill:#4a9eff,color:#fff,stroke:#357abd
-    style GS fill:#4a9eff,color:#fff,stroke:#357abd
-    style PG fill:#4a9eff,color:#fff,stroke:#357abd
-    style CS fill:#4a9eff,color:#fff,stroke:#357abd
-    style SA fill:#4a9eff,color:#fff,stroke:#357abd
-    style AC fill:#4a9eff,color:#fff,stroke:#357abd
-    style EL fill:#555,color:#fff,stroke:#444
-    style CLIP fill:#555,color:#fff,stroke:#444
-    style KS fill:#555,color:#fff,stroke:#444
-    style VAE fill:#555,color:#fff,stroke:#444
-```
-
-**Blue** = this node pack. **Grey** = built-in ComfyUI. **Dashed** = optional connection. `PIPELINE_CONFIG` from Gap Scanner keeps Prompt Generator and Save As in sync.
+**Blue** = pipeline nodes. **Grey** = built-in ComfyUI. **Purple** = standalone utility. **Dashed** = optional connection.
 
 ### Step by step
 
