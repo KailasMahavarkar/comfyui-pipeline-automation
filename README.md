@@ -96,36 +96,42 @@ Generates N prompt variants from a base prompt using local mutation strategies. 
 
 ## Pipeline Workflow
 
-```
-┌────────────┐                        ┌────────────┐
-│ LLM Config ├─── LLM_CONFIG ────┐    │ Gap Scanner │
-└────────────┘                   │    └─────┬──────┘
-                                 │          │
-                                 │    topic/res/idx ──────┐
-                                 │    pipeline_config ────┤
-                                 │    is_complete ────┐   │
-                                 │    width/height ─┐ │   │
-                                 ▼                  │ │   ▼
-                          ┌──────────────────┐      │ │  ┌──────────────────┐
-                          │ Prompt Generator │      │ │  │ CRON Scheduler   │
-                          └────────┬─────────┘      │ │  └──────────────────┘
-                                   │                │ │
-                     prompt/neg ───┤                │ │
-                     metadata ─────┤                ▼ │
-                                   │   ┌──────────────────┐
-                                   │   │ Empty Latent     │
-                                   │   └──────────────────┘
-                                   │
-                                   │        [KSampler / VAE Decode]
-                                   │                │
-                                   ▼                ▼
-                              ┌─────────┐    ┌──────────────────┐
-                              │ Save As │◄───│ CRON Scheduler   │
-                              └─────────┘    │  (passthrough)   │
-                                             └──────────────────┘
+```mermaid
+graph TD
+    GS[Gap Scanner] -->|topic, resolution, variant_index| PG[Prompt Generator]
+    GS -->|"pipeline_config (PIPELINE_CONFIG)"| PG
+    GS -->|"pipeline_config (PIPELINE_CONFIG)"| SA[Save As]
+    GS -->|width, height| EL[Empty Latent Image]
+    GS -->|is_complete| CS[CRON Scheduler]
+
+    LC[LLM Config] -->|"llm_config (LLM_CONFIG)"| PG
+    LC -->|"llm_config (LLM_CONFIG)"| AC[API Call]
+
+    PG -->|prompt| CLIP1[CLIP Text Encode]
+    PG -->|negative_prompt| CLIP2[CLIP Text Encode neg]
+    PG -->|metadata| SA
+
+    CLIP1 --> KS[KSampler]
+    CLIP2 --> KS
+    EL --> KS
+    KS --> VAE[VAE Decode]
+    VAE --> CS
+    CS -->|"passthrough (*)"| SA
+
+    style GS fill:#4a9eff,color:#fff
+    style PG fill:#4a9eff,color:#fff
+    style LC fill:#4a9eff,color:#fff
+    style CS fill:#4a9eff,color:#fff
+    style SA fill:#4a9eff,color:#fff
+    style AC fill:#4a9eff,color:#fff
+    style EL fill:#666,color:#fff
+    style CLIP1 fill:#666,color:#fff
+    style CLIP2 fill:#666,color:#fff
+    style KS fill:#666,color:#fff
+    style VAE fill:#666,color:#fff
 ```
 
-One `pipeline_config` wire from Gap Scanner feeds both Prompt Generator and Save As — keeps workflow_name, output_dir, format, and prompts_per_topic in sync.
+Blue nodes are from this pack. Grey nodes are built-in ComfyUI. One `pipeline_config` wire from Gap Scanner feeds both Prompt Generator and Save As — keeps workflow_name, output_dir, format, and prompts_per_topic in sync.
 
 ### Step by step
 
