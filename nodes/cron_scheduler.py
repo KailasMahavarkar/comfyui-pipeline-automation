@@ -26,6 +26,7 @@ _scheduler_thread: threading.Thread | None = None
 _scheduler_stop = threading.Event()
 _run_count = 0
 _lock = threading.Lock()
+_last_prompt: dict | None = None
 
 
 def _stop_existing():
@@ -52,17 +53,48 @@ def _check_queue_busy(api_url: str) -> bool:
         return False
 
 
-def _requeue_workflow(api_url: str, workflow: dict | None = None):
-    """Re-queue the current workflow via ComfyUI /prompt API."""
+def _fetch_last_prompt(api_url: str) -> dict | None:
+    """Fetch the most recent workflow from ComfyUI /history."""
+    try:
+        req = urllib.request.Request(f"{api_url.rstrip('/')}/history?max_items=1")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        if not data:
+            return None
+        # history is {prompt_id: {prompt: [num, id, workflow, extra, outputs], ...}}
+        latest = next(iter(data.values()))
+        prompt_data = latest.get("prompt", [])
+        if len(prompt_data) >= 3:
+            return prompt_data[2]  # the workflow dict
+        return None
+    except Exception as e:
+        logger.warning(f"Failed to fetch history: {e}")
+        return None
+
+
+def _requeue_workflow(api_url: str):
+    """Re-queue the workflow via ComfyUI /prompt API."""
+    global _last_prompt
+
+    # Use cached prompt or fetch from history
+    prompt = _last_prompt
+    if not prompt:
+        prompt = _fetch_last_prompt(api_url)
+    if not prompt:
+        logger.error("No workflow found to re-queue")
+        return
+
     try:
         url = f"{api_url.rstrip('/')}/prompt"
-        body = json.dumps({"prompt": workflow or {}}).encode("utf-8")
+        body = json.dumps({"prompt": prompt}).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
+        _last_prompt = prompt  # cache for next re-queue
         logger.info("Workflow re-queued successfully")
     except Exception as e:
         logger.error(f"Failed to re-queue workflow: {e}")
+        _last_prompt = None  # invalidate cache on failure
 
 
 def _scheduler_loop(interval_seconds: int, api_url: str, mode: str,
