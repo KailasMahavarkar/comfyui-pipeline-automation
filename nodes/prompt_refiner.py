@@ -23,12 +23,13 @@ PROVIDER_URLS = {
 class PromptRefiner:
     """Enhances a prompt and generates a matching negative prompt via LLM.
     Drop between Prompt Generator and CLIP Encode.
+    Outputs metadata for Save As with the refined prompt baked in.
     Caches results per input prompt — crash recovery doesn't re-call the LLM.
     Falls back to original prompt silently on failure."""
 
     CATEGORY = "Pipeline Automation"
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("refined_prompt", "refined_negative")
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("refined_prompt", "refined_negative", "metadata")
     FUNCTION = "refine"
 
     @classmethod
@@ -36,11 +37,13 @@ class PromptRefiner:
         return {
             "required": {
                 "prompt": ("STRING", {"forceInput": True}),
+                "negative_prompt": ("STRING", {"forceInput": True}),
                 "provider": (list(PROVIDER_URLS.keys()),),
                 "model": ("STRING", {"default": "google/gemini-3.1-flash-lite-preview"}),
                 "api_key": ("STRING", {"default": ""}),
             },
             "optional": {
+                "pipeline_config": ("PIPELINE_CONFIG",),
                 "api_url_override": ("STRING", {"default": ""}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "max_tokens": ("INT", {"default": 500, "min": 50, "max": 4096}),
@@ -55,22 +58,39 @@ class PromptRefiner:
             },
         }
 
-    def refine(self, prompt, provider, model, api_key,
-               api_url_override="", temperature=0.7, max_tokens=500,
+    def refine(self, prompt, negative_prompt, provider, model, api_key,
+               pipeline_config=None, api_url_override="",
+               temperature=0.7, max_tokens=500,
                positive_guidance="", negative_guidance=""):
 
         if not prompt or not prompt.strip():
-            return ("", "")
+            return ("", negative_prompt, "{}")
 
         # Resolve API URL
         api_url = api_url_override.strip() if api_url_override and api_url_override.strip() else PROVIDER_URLS.get(provider, "")
+
+        # Extract pipeline state for metadata
+        pipeline = {}
+        if pipeline_config:
+            pipeline = {
+                "workflow_name": pipeline_config.get("workflow_name", "unnamed"),
+                "topic": pipeline_config.get("topic", ""),
+                "resolution": pipeline_config.get("resolution", ""),
+                "variant_index": pipeline_config.get("variant_index", 0),
+                "total_variants": pipeline_config.get("prompts_per_topic", 0),
+            }
+
+        # No API URL — pass through without refinement
         if not api_url:
-            return (prompt, "")
+            metadata = self._build_metadata(prompt, negative_prompt, pipeline)
+            return (prompt, negative_prompt, metadata)
 
         # Check cache
         cache_key = f"{prompt}:{model}:{positive_guidance}:{negative_guidance}"
         if cache_key in _refine_cache:
-            return _refine_cache[cache_key]
+            refined, negative = _refine_cache[cache_key]
+            metadata = self._build_metadata(refined, negative, pipeline)
+            return (refined, negative, metadata)
 
         # Build LLM prompt
         parts = [
@@ -88,6 +108,8 @@ class PromptRefiner:
             '{"prompt": "enhanced prompt here", "negative": "negative prompt here"}'
         )
         parts.append(f"\nBase prompt: {prompt}")
+        if negative_prompt and negative_prompt.strip():
+            parts.append(f"Base negative: {negative_prompt}")
 
         user_msg = "\n".join(parts)
 
@@ -114,21 +136,31 @@ class PromptRefiner:
                 refined = str(parsed.get("prompt", prompt)).strip()
                 negative = str(parsed.get("negative", "")).strip()
             else:
-                # LLM returned plain text — use as prompt, no negative
                 refined = content.strip()
                 negative = ""
 
             if not refined:
                 refined = prompt
+            if not negative:
+                negative = negative_prompt
 
-            result_tuple = (refined, negative)
-            _refine_cache[cache_key] = result_tuple
+            _refine_cache[cache_key] = (refined, negative)
             logger.info("Prompt refined: '%s...' → '%s...'", prompt[:40], refined[:40])
-            return result_tuple
+            metadata = self._build_metadata(refined, negative, pipeline)
+            return (refined, negative, metadata)
 
         except Exception as e:
             logger.warning("Prompt refinement failed, using original: %s", e)
-            return (prompt, "")
+            metadata = self._build_metadata(prompt, negative_prompt, pipeline)
+            return (prompt, negative_prompt, metadata)
+
+    def _build_metadata(self, prompt, negative, pipeline):
+        metadata_dict = {
+            "prompt": prompt,
+            "negative_prompt": negative,
+            "pipeline": pipeline,
+        }
+        return json.dumps(metadata_dict, ensure_ascii=False)
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):

@@ -36,8 +36,8 @@ class PromptGenerator:
     """
 
     CATEGORY = "Pipeline Automation"
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("prompt", "negative_prompt", "metadata")
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("prompt", "negative_prompt")
     FUNCTION = "generate"
 
     @classmethod
@@ -101,27 +101,10 @@ class PromptGenerator:
         variants = cached.get("variants", [])
         if variant_index < len(variants):
             prompt = variants[variant_index]["prompt"]
-            strategy = variants[variant_index].get("strategy", "unknown")
         else:
             prompt = resolved_base
-            strategy = "fallback"
 
-        metadata_dict = {
-            "prompt": prompt,
-            "negative_prompt": base_negative_prompt,
-            "tags": cached.get("tags", {}),
-            "tag_sources": cached.get("tag_sources", {}),
-            "pipeline": {
-                "workflow_name": workflow_name or "unnamed",
-                "topic": sanitized_topic,
-                "resolution": resolution,
-                "variant_index": variant_index,
-                "variant_strategy": strategy,
-                "total_variants": prompts_per_topic,
-            },
-        }
-
-        return (prompt, base_negative_prompt, json.dumps(metadata_dict, ensure_ascii=False))
+        return (prompt, base_negative_prompt)
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
