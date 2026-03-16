@@ -46,7 +46,7 @@ class PromptRefiner:
             "optional": {
                 "api_url_override": ("STRING", {"default": ""}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05}),
-                "max_tokens": ("INT", {"default": 500, "min": 50, "max": 4096}),
+                "max_tokens": ("INT", {"default": 1024, "min": 100, "max": 4096}),
                 "positive_guidance": ("STRING", {
                     "multiline": True,
                     "default": "",
@@ -110,8 +110,9 @@ class PromptRefiner:
             parts.append(f"Negative guidance (always avoid): {negative_guidance.strip()}")
 
         parts.append(
-            '\nReturn ONLY valid JSON with two keys: "prompt" and "negative". '
-            "No explanation, no markdown. Example:\n"
+            "\nKeep the prompt under 75 words and the negative under 30 words. "
+            'Return ONLY valid JSON with two keys: "prompt" and "negative". '
+            "No explanation, no markdown, no truncation. Example:\n"
             '{"prompt": "enhanced prompt here", "negative": "negative prompt here"}'
         )
         parts.append(f"\nBase prompt: {prompt}")
