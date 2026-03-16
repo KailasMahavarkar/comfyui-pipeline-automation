@@ -2,7 +2,7 @@ collect_ignore = [
     "__init__.py",
     "save_as.py",
     "api_call.py",
-    "bulk_prompter.py",
+    "prompt_mutations.py",
     "cron_scheduler.py",
     "llm_config.py",
     "gap_scanner.py",

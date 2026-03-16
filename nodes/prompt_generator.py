@@ -3,7 +3,7 @@
 import json
 import os
 
-from ..lib.bulk_prompter import generate_variants
+from ..lib.prompt_mutations import generate_variants
 from ..lib.tag_generator import generate_tags
 from ..lib.naming import sanitize_name
 
