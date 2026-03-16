@@ -130,7 +130,6 @@ def _wait_for_queue_free(api_url: str, stop_event: threading.Event, poll_interva
 def _scheduler_loop(interval_seconds: int, api_url: str):
     """Background thread loop for interval-based scheduling."""
     global _run_count
-    last_prompt_id: str | None = None
 
     while not _scheduler_stop.is_set():
         if _scheduler_stop.wait(timeout=interval_seconds):
@@ -140,17 +139,21 @@ def _scheduler_loop(interval_seconds: int, api_url: str):
         if _check_queue_busy(api_url):
             continue
 
-        # If we re-queued last tick, verify it actually completed
-        if last_prompt_id:
-            if not _check_prompt_completed(api_url, last_prompt_id):
-                logger.info("Last execution was cancelled (prompt %s not in history), stopping", last_prompt_id)
-                break
-            last_prompt_id = None
-
         # Re-queue
-        last_prompt_id = _requeue_workflow(api_url)
-        if last_prompt_id:
-            _wait_for_queue_free(api_url, _scheduler_stop)
+        prompt_id = _requeue_workflow(api_url)
+        if not prompt_id:
+            break
+
+        # Wait for execution to finish
+        _wait_for_queue_free(api_url, _scheduler_stop)
+
+        if _scheduler_stop.is_set():
+            break
+
+        # Check immediately: did it complete or was it cancelled?
+        if not _check_prompt_completed(api_url, prompt_id):
+            logger.info("Execution cancelled (prompt %s not in history), stopping pipeline", prompt_id)
+            break
 
         with _lock:
             _run_count += 1
