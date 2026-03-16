@@ -61,46 +61,69 @@ def _fetch_last_prompt(api_url: str) -> dict | None:
             data = json.loads(resp.read().decode("utf-8"))
         if not data:
             return None
-        # history is {prompt_id: {prompt: [num, id, workflow, extra, outputs], ...}}
         latest = next(iter(data.values()))
         prompt_data = latest.get("prompt", [])
         if len(prompt_data) >= 3:
-            return prompt_data[2]  # the workflow dict
+            return prompt_data[2]
         return None
     except Exception as e:
         logger.warning(f"Failed to fetch history: {e}")
         return None
 
 
-def _requeue_workflow(api_url: str):
-    """Re-queue the workflow via ComfyUI /prompt API."""
+def _check_prompt_completed(api_url: str, prompt_id: str) -> bool:
+    """Check if a specific prompt_id completed via /history."""
+    try:
+        req = urllib.request.Request(f"{api_url.rstrip('/')}/history/{prompt_id}")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return prompt_id in data
+    except Exception:
+        return False
+
+
+def _requeue_workflow(api_url: str) -> str | None:
+    """Re-queue the workflow via ComfyUI /prompt API. Returns prompt_id or None."""
     global _last_prompt
 
-    # Use cached prompt or fetch from history
     prompt = _last_prompt
     if not prompt:
         prompt = _fetch_last_prompt(api_url)
     if not prompt:
         logger.error("No workflow found to re-queue")
-        return
+        return None
 
     try:
         url = f"{api_url.rstrip('/')}/prompt"
         body = json.dumps({"prompt": prompt}).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
-            resp.read()
-        _last_prompt = prompt  # cache for next re-queue
-        logger.info("Workflow re-queued successfully")
+            result = json.loads(resp.read().decode("utf-8"))
+        _last_prompt = prompt
+        prompt_id = result.get("prompt_id", "")
+        logger.info("Workflow re-queued: %s", prompt_id)
+        return prompt_id
     except Exception as e:
         logger.error(f"Failed to re-queue workflow: {e}")
-        _last_prompt = None  # invalidate cache on failure
+        _last_prompt = None
+        return None
+
+
+def _wait_for_queue_free(api_url: str, stop_event: threading.Event, poll_interval: int = 3):
+    """Wait until the queue is no longer busy."""
+    while not stop_event.is_set():
+        if not _check_queue_busy(api_url):
+            return True
+        if stop_event.wait(timeout=poll_interval):
+            return False
+    return False
 
 
 def _scheduler_loop(interval_seconds: int, api_url: str, mode: str,
                     external_command: str, max_iterations: int):
     """Background thread loop for interval-based scheduling."""
     global _run_count
+    last_prompt_id: str | None = None
 
     while not _scheduler_stop.is_set():
         if _scheduler_stop.wait(timeout=interval_seconds):
@@ -108,12 +131,21 @@ def _scheduler_loop(interval_seconds: int, api_url: str, mode: str,
 
         # Skip-if-busy guard
         if _check_queue_busy(api_url):
-            logger.warning("Queue busy, skipping this tick")
             continue
+
+        # If we re-queued last tick, verify it actually completed
+        if last_prompt_id:
+            if not _check_prompt_completed(api_url, last_prompt_id):
+                logger.info("Last execution was cancelled (prompt %s not in history), stopping", last_prompt_id)
+                break
+            last_prompt_id = None
 
         # Execute
         if mode in ("requeue_workflow", "both"):
-            _requeue_workflow(api_url)
+            last_prompt_id = _requeue_workflow(api_url)
+            if last_prompt_id:
+                # Wait for execution to finish before next tick
+                _wait_for_queue_free(api_url, _scheduler_stop)
 
         if mode in ("run_command", "both") and external_command:
             import subprocess
@@ -137,7 +169,8 @@ def _scheduler_loop(interval_seconds: int, api_url: str, mode: str,
 
 class CRONScheduler:
     """Re-queues workflow on interval via background thread.
-    Marked as OUTPUT_NODE so it always executes without needing a passthrough."""
+    Marked as OUTPUT_NODE so it always executes without needing a passthrough.
+    Stops automatically when user cancels (detects interrupted execution)."""
 
     CATEGORY = "Pipeline Automation"
     RETURN_TYPES = ("STRING",)
@@ -167,22 +200,18 @@ class CRONScheduler:
                  external_command="", is_complete=False):
         global _scheduler_thread, _run_count
 
-        # Preset overrides manual interval
         actual_interval = SCHEDULE_PRESETS.get(schedule_preset, interval_seconds)
 
-        # Handle DONE signal
         if is_complete:
             _stop_existing()
             status = f"DONE | runs: {_run_count} | pipeline complete"
             return (status,)
 
-        # Handle disabled
         if not enabled:
             _stop_existing()
             status = "OFF"
             return (status,)
 
-        # Start or restart scheduler
         _stop_existing()
         _run_count = 0
 
