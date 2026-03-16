@@ -62,6 +62,10 @@ class SaveAs:
             except json.JSONDecodeError:
                 pass
 
+        # Skip saving when pipeline is complete (no topic = nothing to save)
+        if not meta_dict.get("pipeline", {}).get("topic"):
+            return ("",)
+
         saved_paths = []
         batch_size = image.shape[0]
 

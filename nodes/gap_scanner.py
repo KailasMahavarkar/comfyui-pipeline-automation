@@ -90,6 +90,9 @@ class GapScannerNode:
             _scanners[workflow_name] = Scanner(output_dir, workflow_name)
         scanner = _scanners[workflow_name]
 
+        # Force rescan — Save As wrote files since the last execution
+        scanner.invalidate_cache()
+
         # Load failures / skipped
         failures = _load_failures(workflow_dir)
         skipped = _get_skipped_paths(failures)
