@@ -113,6 +113,8 @@ class PromptGenerator:
             "tag_sources": cached.get("tag_sources", {}),
             "pipeline": {
                 "workflow_name": workflow_name or "unnamed",
+                "output_dir": output_dir,
+                "format": pipeline_config.get("format", "png"),
                 "topic": sanitized_topic,
                 "resolution": resolution,
                 "variant_index": variant_index,

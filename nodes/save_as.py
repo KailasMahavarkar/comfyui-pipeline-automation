@@ -38,7 +38,6 @@ class SaveAs:
                 "write_manifest": ("BOOLEAN", {"default": False}),
             },
             "optional": {
-                "pipeline_config": ("PIPELINE_CONFIG",),
                 "naming_template": ("STRING", {"default": ""}),
                 "metadata": ("STRING", {"default": ""}),
                 "output_dir": ("STRING", {"default": "output"}),
@@ -47,12 +46,7 @@ class SaveAs:
 
     def save(self, image, format, quality, naming_preset, filename_prefix,
              subfolder_template, embed_metadata, write_sidecar, write_manifest,
-             pipeline_config=None, naming_template="", metadata="", output_dir="output"):
-
-        # PIPELINE_CONFIG overrides manual fields
-        if pipeline_config:
-            output_dir = pipeline_config.get("output_dir", output_dir)
-            format = pipeline_config.get("format", format)
+             naming_template="", metadata="", output_dir="output"):
 
         # Parse metadata JSON
         meta_dict = {}
@@ -61,6 +55,13 @@ class SaveAs:
                 meta_dict = json.loads(metadata)
             except json.JSONDecodeError:
                 pass
+
+        # Metadata pipeline overrides manual fields
+        pipeline = meta_dict.get("pipeline", {})
+        if pipeline.get("output_dir"):
+            output_dir = pipeline["output_dir"]
+        if pipeline.get("format"):
+            format = pipeline["format"]
 
         # Skip saving when pipeline is complete (no topic = nothing to save)
         if not meta_dict.get("pipeline", {}).get("topic"):

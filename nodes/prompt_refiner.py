@@ -28,8 +28,8 @@ class PromptRefiner:
     Falls back to original prompt silently on failure."""
 
     CATEGORY = "Pipeline Automation"
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("refined_prompt", "refined_negative")
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("refined_prompt", "refined_negative", "metadata")
     FUNCTION = "refine"
 
     @classmethod
@@ -38,6 +38,7 @@ class PromptRefiner:
             "required": {
                 "prompt": ("STRING", {"forceInput": True}),
                 "negative_prompt": ("STRING", {"forceInput": True}),
+                "metadata": ("STRING", {"forceInput": True}),
                 "provider": (list(PROVIDER_URLS.keys()),),
                 "model": ("STRING", {"default": "google/gemini-3.1-flash-lite-preview"}),
                 "api_key": ("STRING", {"default": ""}),
@@ -57,24 +58,25 @@ class PromptRefiner:
             },
         }
 
-    def refine(self, prompt, negative_prompt, provider, model, api_key,
+    def refine(self, prompt, negative_prompt, metadata, provider, model, api_key,
                api_url_override="", temperature=0.7, max_tokens=500,
                positive_guidance="", negative_guidance=""):
 
         if not prompt or not prompt.strip():
-            return ("", negative_prompt)
+            return ("", negative_prompt, metadata)
 
         # Resolve API URL
         api_url = api_url_override.strip() if api_url_override and api_url_override.strip() else PROVIDER_URLS.get(provider, "")
 
         # No API URL — pass through without refinement
         if not api_url:
-            return (prompt, negative_prompt)
+            return (prompt, negative_prompt, metadata)
 
         # Check cache
         cache_key = f"{prompt}:{model}:{positive_guidance}:{negative_guidance}"
         if cache_key in _refine_cache:
-            return _refine_cache[cache_key]
+            refined, negative = _refine_cache[cache_key]
+            return (refined, negative, metadata)
 
         # Build LLM prompt
         parts = [
@@ -128,14 +130,13 @@ class PromptRefiner:
             if not negative:
                 negative = negative_prompt
 
-            result_tuple = (refined, negative)
-            _refine_cache[cache_key] = result_tuple
+            _refine_cache[cache_key] = (refined, negative)
             logger.info("Prompt refined: '%s...' → '%s...'", prompt[:40], refined[:40])
-            return result_tuple
+            return (refined, negative, metadata)
 
         except Exception as e:
             logger.warning("Prompt refinement failed, using original: %s", e)
-            return (prompt, negative_prompt)
+            return (prompt, negative_prompt, metadata)
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
