@@ -119,8 +119,7 @@ def _wait_for_queue_free(api_url: str, stop_event: threading.Event, poll_interva
     return False
 
 
-def _scheduler_loop(interval_seconds: int, api_url: str, mode: str,
-                    external_command: str, max_iterations: int):
+def _scheduler_loop(interval_seconds: int, api_url: str):
     """Background thread loop for interval-based scheduling."""
     global _run_count
     last_prompt_id: str | None = None
@@ -140,31 +139,13 @@ def _scheduler_loop(interval_seconds: int, api_url: str, mode: str,
                 break
             last_prompt_id = None
 
-        # Execute
-        if mode in ("requeue_workflow", "both"):
-            last_prompt_id = _requeue_workflow(api_url)
-            if last_prompt_id:
-                # Wait for execution to finish before next tick
-                _wait_for_queue_free(api_url, _scheduler_stop)
-
-        if mode in ("run_command", "both") and external_command:
-            import subprocess
-            try:
-                subprocess.run(
-                    external_command, shell=True, timeout=300,
-                    capture_output=True, text=True,
-                )
-            except subprocess.TimeoutExpired:
-                logger.error(f"External command timed out: {external_command}")
-            except Exception as e:
-                logger.error(f"External command failed: {e}")
+        # Re-queue
+        last_prompt_id = _requeue_workflow(api_url)
+        if last_prompt_id:
+            _wait_for_queue_free(api_url, _scheduler_stop)
 
         with _lock:
             _run_count += 1
-
-        if max_iterations > 0 and _run_count >= max_iterations:
-            logger.info(f"Max iterations ({max_iterations}) reached, stopping")
-            break
 
 
 class CRONScheduler:
@@ -182,22 +163,17 @@ class CRONScheduler:
     def INPUT_TYPES(cls):
         return {
             "required": {
+                "is_complete": ("BOOLEAN", {"forceInput": True}),
                 "schedule_preset": (list(SCHEDULE_PRESETS.keys()),),
-                "interval_seconds": ("INT", {"default": 60, "min": 10, "max": 86400}),
-                "enabled": ("BOOLEAN", {"default": False}),
-                "mode": (["requeue_workflow", "run_command", "both"],),
-                "comfyui_api_url": ("STRING", {"default": "http://127.0.0.1:8188"}),
-                "max_iterations": ("INT", {"default": 0, "min": 0, "max": 1000000}),
             },
             "optional": {
-                "external_command": ("STRING", {"default": ""}),
-                "is_complete": ("BOOLEAN", {"default": False}),
+                "interval_seconds": ("INT", {"default": 60, "min": 10, "max": 86400}),
+                "comfyui_api_url": ("STRING", {"default": "http://127.0.0.1:8188"}),
             },
         }
 
-    def schedule(self, schedule_preset, interval_seconds, enabled, mode,
-                 comfyui_api_url, max_iterations,
-                 external_command="", is_complete=False):
+    def schedule(self, is_complete, schedule_preset,
+                 interval_seconds=60, comfyui_api_url="http://127.0.0.1:8188"):
         global _scheduler_thread, _run_count
 
         actual_interval = SCHEDULE_PRESETS.get(schedule_preset, interval_seconds)
@@ -207,17 +183,12 @@ class CRONScheduler:
             status = f"DONE | runs: {_run_count} | pipeline complete"
             return (status,)
 
-        if not enabled:
-            _stop_existing()
-            status = "OFF"
-            return (status,)
-
         _stop_existing()
         _run_count = 0
 
         _scheduler_thread = threading.Thread(
             target=_scheduler_loop,
-            args=(actual_interval, comfyui_api_url, mode, external_command, max_iterations),
+            args=(actual_interval, comfyui_api_url),
             daemon=True,
             name="CRONScheduler",
         )
