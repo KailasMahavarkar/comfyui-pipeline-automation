@@ -93,6 +93,17 @@ class PromptRefiner:
             "",
             "Also generate a matching negative prompt as comma-separated flaws to avoid.",
         ]
+        # Extract topic from metadata so LLM stays on topic
+        meta_dict = {}
+        if metadata:
+            try:
+                meta_dict = json.loads(metadata)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        topic = meta_dict.get("pipeline", {}).get("topic", "")
+        if topic:
+            parts.append(f"The image MUST be about: {topic}. Stay focused on this topic.")
+
         if positive_guidance and positive_guidance.strip():
             parts.append(f"Positive guidance (always include): {positive_guidance.strip()}")
         if negative_guidance and negative_guidance.strip():
