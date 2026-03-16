@@ -5,7 +5,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 WEB_DIRECTORY = None
 
 try:
-    from .nodes import (SaveAs, APICall, CRONScheduler,
+    from .nodes import (SaveAs, Webhook, CRONScheduler,
                         LLMConfig, GapScannerNode, PromptGenerator,
                         PromptList, TagBank)
 
@@ -15,7 +15,7 @@ try:
         "PromptGenerator": PromptGenerator,
         "LLMConfig": LLMConfig,
         "SaveAs": SaveAs,
-        "APICall": APICall,
+        "Webhook": Webhook,
         "PromptList": PromptList,
         "TagBank": TagBank,
     }
@@ -26,7 +26,7 @@ try:
         "PromptGenerator": "Prompt Generator",
         "LLMConfig": "LLM Config",
         "SaveAs": "Save As",
-        "APICall": "API Call",
+        "Webhook": "Webhook",
         "PromptList": "Prompt List",
         "TagBank": "Tag Bank",
     }

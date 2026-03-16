@@ -33,8 +33,8 @@ Restart ComfyUI. All nodes appear under **Pipeline Automation** in the node menu
 | Color | Meaning |
 |-------|---------|
 | **Blue** | Pipeline nodes (Gap Scanner, Prompt Generator, CRON Scheduler, Save As) |
-| **Purple** | LLM/API nodes (LLM Config, API Call) |
-| **Green** | Optional primitives (Prompt List, Tag Bank) |
+| **Purple** | LLM nodes (LLM Config) |
+| **Green** | Optional primitives (Prompt List, Tag Bank, Webhook) |
 | **Gray** | Standard ComfyUI nodes (CLIP Encode, KSampler, VAE Decode, Empty Latent) |
 
 ### How It Works
@@ -127,7 +127,7 @@ If LLM fails, falls back to mutations silently. Tags are always generated via th
 
 ### LLM Config
 
-Structured LLM connection settings with provider presets. Outputs a typed `LLM_CONFIG` object — no manual JSON required. When connected to Prompt Generator, enables both LLM-based variant generation (one call per topic) and LLM-based tag generation. Can also be shared with API Call for custom LLM calls.
+Structured LLM connection settings with provider presets. Outputs a typed `LLM_CONFIG` object — no manual JSON required. When connected to Prompt Generator, enables both LLM-based variant generation (one call per topic) and LLM-based tag generation.
 
 **Inputs:**
 
@@ -215,35 +215,33 @@ Saves images with template-based filenames, organized subfolders, and rich metad
 
 ---
 
-### API Call
+### Webhook
 
-Calls any REST API (OpenAI-compatible preset or generic). Supports configurable retry with exponential backoff, dot-path response mapping, and auto-parsing of stringified JSON. Standalone utility node.
+Calls any REST API with configurable retry and exponential backoff. Use for notifications, triggering external workflows, or fetching data. Supports dot-path response extraction and `{topic}` template substitution in the body. Has a passthrough input so it can sit anywhere in the graph.
 
 **Inputs:**
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
-| `api_preset` | ENUM | — | openai_compatible, generic |
-| `api_url` | STRING | — | API endpoint |
-| `method` | ENUM | `POST` | POST, GET |
-| `request_template` | STRING | — | JSON request body template |
-| `response_mapping` | STRING | `prompt=choices.0.message.content` | Dot-path response extraction |
+| `url` | STRING | — | API endpoint |
+| `method` | ENUM | `POST` | POST, GET, PUT, PATCH |
+| `body` | STRING | — | Request body template (supports `{topic}`) |
+| `headers` | STRING | — | Custom headers (JSON) |
+| `response_mapping` | STRING | — | Dot-path extraction (e.g. `result=data.status`) |
+| `api_key` | STRING | — | Bearer token (added to Authorization header) |
 | `timeout` | INT | `30` | Request timeout (seconds) |
 | `max_retries` | INT | `3` | Max retry attempts |
 | `retry_delay` | INT | `2` | Base delay between retries (seconds) |
-| `llm_config` | LLM_CONFIG | — | Overrides api_url, api_key, model |
-| `api_key` | STRING | — | API key (manual) |
-| `headers` | STRING | — | Custom headers (JSON) |
-| `topic` | STRING | — | Available in request template as `{topic}` |
+| `topic` | STRING | — | Available in body template as `{topic}` |
+| `passthrough` | * | — | Any-type passthrough |
 
 **Outputs:**
 
 | Output | Type | Description |
 |--------|------|-------------|
-| `prompt` | STRING | Extracted prompt from response |
-| `negative_prompt` | STRING | Extracted negative prompt |
-| `metadata` | STRING | JSON of all extracted fields |
-| `raw_response` | STRING | Raw API response string |
+| `response` | STRING | Raw response body |
+| `status_code` | INT | HTTP status code |
+| `extracted` | STRING | JSON of dot-path extracted fields |
 
 ---
 
@@ -295,7 +293,6 @@ Bundles custom word bank paths and per-topic curated tags into a typed `TAG_BANK
 | Gap Scanner | `pipeline_config` | PIPELINE_CONFIG | Prompt Generator | `pipeline_config` |
 | Gap Scanner | `pipeline_config` | PIPELINE_CONFIG | Save As | `pipeline_config` |
 | LLM Config | `llm_config` | LLM_CONFIG | Prompt Generator | `llm_config` |
-| LLM Config | `llm_config` | LLM_CONFIG | API Call | `llm_config` |
 | Prompt Generator | `prompt` | STRING | CLIP Text Encode | `text` |
 | Prompt Generator | `negative_prompt` | STRING | CLIP Text Encode (neg) | `text` |
 | Prompt Generator | `metadata` | STRING | Save As | `metadata` |
@@ -358,7 +355,7 @@ output/
 
 ## Standalone Use
 
-Save As, API Call, and LLM Config work independently in any workflow — no pipeline required. Drop them into any ComfyUI graph and they function as standalone utility nodes.
+Save As, Webhook, and LLM Config work independently in any workflow — no pipeline required. Drop them into any ComfyUI graph and they function as standalone utility nodes.
 
 ## License
 

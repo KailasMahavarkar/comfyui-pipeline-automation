@@ -2,8 +2,8 @@
   { "type": "text", "text": "ComfyUI Pipeline Automation", "position": "above" },
 
   { "type": "zone", "id": "config_zone", "label": "Config & Input", "children": ["gap_scanner", "llm_config"] },
-  { "type": "zone", "id": "optional_zone", "label": "Optional Primitives", "children": ["prompt_list_node", "tag_bank_node"] },
-  { "type": "zone", "id": "prompt_zone", "label": "Prompt Generation", "children": ["prompt_generator", "api_call"] },
+  { "type": "zone", "id": "optional_zone", "label": "Optional Primitives", "children": ["prompt_list_node", "tag_bank_node", "webhook_node"] },
+  { "type": "zone", "id": "prompt_zone", "label": "Prompt Generation", "children": ["prompt_generator"] },
   { "type": "zone", "id": "diffusion_zone", "label": "ComfyUI Diffusion", "children": ["empty_latent", "clip_pos", "clip_neg", "ksampler", "vae_decode"] },
   { "type": "zone", "id": "output_zone", "label": "Scheduling & Output", "children": ["cron_scheduler", "save_as"] },
 
@@ -12,7 +12,7 @@
   { "type": "rectangle", "id": "prompt_list_node",   "text": "Prompt List",        "backgroundColor": "#b2f2bb" },
   { "type": "rectangle", "id": "tag_bank_node",      "text": "Tag Bank",           "backgroundColor": "#b2f2bb" },
   { "type": "rectangle", "id": "prompt_generator",   "text": "Prompt Generator",   "backgroundColor": "#74c0fc" },
-  { "type": "rectangle", "id": "api_call",            "text": "API Call",            "backgroundColor": "#b197fc" },
+  { "type": "rectangle", "id": "webhook_node",         "text": "Webhook",             "backgroundColor": "#b2f2bb" },
   { "type": "rectangle", "id": "empty_latent",        "text": "Empty Latent",        "backgroundColor": "#ced4da" },
   { "type": "rectangle", "id": "clip_pos",            "text": "CLIP Encode (+)",     "backgroundColor": "#ced4da" },
   { "type": "rectangle", "id": "clip_neg",            "text": "CLIP Encode (−)",     "backgroundColor": "#ced4da" },
@@ -27,7 +27,6 @@
   { "type": "arrow", "from": "gap_scanner",      "to": "prompt_generator",  "text": "PIPELINE_CONFIG", "strokeStyle": "dashed" },
   { "type": "arrow", "from": "gap_scanner",      "to": "save_as",           "text": "PIPELINE_CONFIG", "strokeStyle": "dashed" },
   { "type": "arrow", "from": "llm_config",       "to": "prompt_generator",  "text": "LLM_CONFIG" },
-  { "type": "arrow", "from": "llm_config",       "to": "api_call",          "text": "LLM_CONFIG" },
   { "type": "arrow", "from": "prompt_list_node", "to": "prompt_generator",  "text": "PROMPT_LIST", "strokeStyle": "dashed" },
   { "type": "arrow", "from": "tag_bank_node",    "to": "prompt_generator",  "text": "TAG_BANK", "strokeStyle": "dashed" },
   { "type": "arrow", "from": "prompt_generator", "to": "clip_pos",          "text": "prompt" },
