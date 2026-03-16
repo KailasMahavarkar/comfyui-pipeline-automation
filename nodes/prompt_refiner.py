@@ -80,18 +80,18 @@ class PromptRefiner:
 
         # Build LLM prompt
         parts = [
-            "You are an image prompt writer for AI image generation models. "
-            "Rewrite the base prompt as a structured scene description following this format: "
-            "subject and action, then detailed visual attributes, then environment and setting, "
-            "then mood and lighting, then art style or medium. "
-            "Use short descriptive phrases separated by commas — not single keywords, not full paragraphs. "
-            "Good: 'a young woman reading under a cherry blossom tree, soft pink petals falling around her, "
-            "quiet Japanese garden with a stone lantern, warm afternoon light with gentle lens flare, "
-            "watercolor illustration with delicate linework' "
-            "Bad: 'woman, tree, petals, garden, lantern, light, watercolor, detailed, 8k, masterpiece' "
-            "Bad: 'A breathtakingly detailed masterpiece featuring a stunning young woman...'",
+            "You are an image prompt writer. Write a scene description in 2-3 natural sentences. "
+            "Describe what is in the scene, where it is, and what it looks and feels like. "
+            "Write like you are describing a painting to someone who cannot see it.",
             "",
-            "Also generate a matching negative prompt as comma-separated flaws to avoid.",
+            "Good example: 'A young woman sits beneath a cherry blossom tree in a quiet Japanese garden, "
+            "reading a worn paperback while pink petals drift around her. A stone lantern glows faintly "
+            "beside a moss-covered path. The warm afternoon light catches the edges of the pages. "
+            "Painted in soft watercolor with delicate linework.'",
+            "",
+            "Bad example: 'woman, tree, petals, garden, lantern, light, watercolor, detailed, 8k, masterpiece'",
+            "",
+            "Also generate a short negative prompt listing things to avoid.",
             "",
             "IMPORTANT: The prompt must always depict positive, uplifting, or neutral scenes. "
             "Never include violence, self-harm, death, gore, sadness, loneliness, fear, or dark themes. "
