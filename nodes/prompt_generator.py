@@ -114,6 +114,7 @@ class PromptGenerator:
             "pipeline": {
                 "workflow_name": workflow_name or "unnamed",
                 "topic": sanitized_topic,
+                "resolution": resolution,
                 "variant_index": variant_index,
                 "variant_strategy": strategy,
                 "total_variants": prompts_per_topic,

@@ -92,11 +92,13 @@ class SaveAs:
             filename = resolve_with_preset(naming_preset, naming_template or None, context)
             filename = f"{filename}.{format}"
 
-            # Resolve subfolder
+            # Resolve subfolder — use pipeline resolution for folder organization,
+            # not actual image size (which may differ after upscaling)
+            pipeline_res = meta_dict.get("pipeline", {}).get("resolution", f"{width}x{height}")
             subfolder = subfolder_template
             for key, val in context.items():
                 subfolder = subfolder.replace(f"{{{key}}}", str(val))
-            subfolder = subfolder.replace("{resolution}", f"{width}x{height}")
+            subfolder = subfolder.replace("{resolution}", pipeline_res)
 
             # Build full path
             workflow_name = meta_dict.get("pipeline", {}).get("workflow_name", "")
