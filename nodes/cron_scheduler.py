@@ -165,15 +165,15 @@ class CRONScheduler:
             "required": {
                 "is_complete": ("BOOLEAN", {"forceInput": True}),
                 "schedule_preset": (list(SCHEDULE_PRESETS.keys()),),
+                "comfyui_api_url": ("STRING", {"default": "http://127.0.0.1:8188"}),
             },
             "optional": {
                 "interval_seconds": ("INT", {"default": 60, "min": 10, "max": 86400}),
-                "comfyui_api_url": ("STRING", {"default": "http://127.0.0.1:8188"}),
             },
         }
 
-    def schedule(self, is_complete, schedule_preset,
-                 interval_seconds=60, comfyui_api_url="http://127.0.0.1:8188"):
+    def schedule(self, is_complete, schedule_preset, comfyui_api_url,
+                 interval_seconds=60):
         global _scheduler_thread, _run_count
 
         actual_interval = SCHEDULE_PRESETS.get(schedule_preset, interval_seconds)
