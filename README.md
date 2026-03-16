@@ -39,8 +39,11 @@ Restart ComfyUI. All nodes appear under **Pipeline Automation** in the node menu
 ### How It Works
 
 1. **Gap Scanner** scans the output folder and finds the next missing topic/resolution/variant combo
-2. **Prompt Generator** generates (or loads cached) prompt variants for that topic, picks the one at `variant_index`
-3. **LLM Config** (optional) provides connection settings for LLM-based tag generation
+2. **Prompt Generator** picks the prompt for that slot using a priority system:
+   - If `prompt_list` provided → uses that list, picks by `variant_index`
+   - If `llm_config` connected → one LLM call generates all variants per topic, cached
+   - Otherwise → local mutation strategies generate variants, cached
+3. **LLM Config** (optional) provides connection settings for both variant generation and tag generation
 4. Standard ComfyUI nodes (CLIP Encode, KSampler, VAE Decode) generate the image
 5. **CRON Scheduler** sits in the execution chain and re-queues the workflow on schedule
 6. **Save As** saves with organized naming, embedded metadata, and optional sidecar/manifest
@@ -84,7 +87,17 @@ Scans the output directory against a planned generation matrix (topics × resolu
 
 ### Prompt Generator
 
-Takes a topic and variant index, generates prompt variants using 6 local mutation strategies (synonym swap, detail injection, style shuffle, weight jitter, clause reorder, template fill), and optionally generates tags via LLM. Caches results to disk per topic.
+Given a topic and variant index, returns the correct prompt for that slot. Supports three variant sources in priority order — the pipeline doesn't care how the prompt was produced, only that it gets the right one.
+
+**Variant source priority:**
+
+| Priority | Source | When | Cached |
+|----------|--------|------|--------|
+| 1 | `prompt_list` | User provides prompts (newline or JSON array) | No |
+| 2 | `llm_config` | LLM connected — one call generates all N variants per topic | Yes |
+| 3 | Mutations | Default — 6 local strategies (synonym swap, detail injection, style shuffle, weight jitter, reorder, template fill) | Yes |
+
+If LLM fails, falls back to mutations silently. Tags are always generated via the 3-layer pipeline (prompt extraction, topic bank, optional LLM).
 
 **Inputs:**
 
@@ -97,9 +110,10 @@ Takes a topic and variant index, generates prompt variants using 6 local mutatio
 | `prompts_per_topic` | INT | `50` | How many variants to generate |
 | `pipeline_config` | PIPELINE_CONFIG | — | Optional shared settings |
 | `resolution` | STRING | `512x512` | For resolution-aware tags |
-| `llm_config` | LLM_CONFIG | — | Optional LLM for tag generation |
-| `custom_word_bank_path` | STRING | — | Path to custom word bank JSON |
+| `llm_config` | LLM_CONFIG | — | Optional: enables LLM variant generation and LLM tag generation |
+| `custom_word_bank_path` | STRING | — | Path to custom word bank directory |
 | `topic_tag_bank` | STRING | — | Extra tags per topic (multiline) |
+| `prompt_list` | STRING | — | Custom prompts (newline-separated or JSON array) — overrides all generation |
 
 **Outputs:**
 
@@ -113,7 +127,7 @@ Takes a topic and variant index, generates prompt variants using 6 local mutatio
 
 ### LLM Config
 
-Structured LLM connection settings with provider presets. Outputs a typed `LLM_CONFIG` object — no manual JSON required. Can be shared between Prompt Generator (for tag generation) and API Call (for custom LLM calls).
+Structured LLM connection settings with provider presets. Outputs a typed `LLM_CONFIG` object — no manual JSON required. When connected to Prompt Generator, enables both LLM-based variant generation (one call per topic) and LLM-based tag generation. Can also be shared with API Call for custom LLM calls.
 
 **Inputs:**
 
