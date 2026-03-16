@@ -25,16 +25,11 @@ def _get_skipped_paths(failures: dict) -> set[str]:
 
 
 class GapScannerNode:
-    """Scans output directory, finds missing topic/resolution combos, emits the next one.
-
-    All per-execution data (topic, resolution, variant_index) is packed into
-    PIPELINE_CONFIG to minimize wiring. Only width/height/is_complete/status
-    are separate outputs since they go to standard ComfyUI nodes.
-    """
+    """Scans output directory, finds missing topic/resolution combos, emits the next one."""
 
     CATEGORY = "Pipeline Automation"
-    RETURN_TYPES = ("INT", "INT", "BOOLEAN", "STRING", "PIPELINE_CONFIG")
-    RETURN_NAMES = ("width", "height", "is_complete", "status", "pipeline_config")
+    RETURN_TYPES = ("STRING", "STRING", "INT", "INT", "INT", "BOOLEAN", "STRING", "PIPELINE_CONFIG")
+    RETURN_NAMES = ("topic", "resolution", "width", "height", "variant_index", "is_complete", "status", "pipeline_config")
     FUNCTION = "scan"
 
     @classmethod
@@ -53,16 +48,12 @@ class GapScannerNode:
             },
         }
 
-    def _build_config(self, workflow_name, output_dir, fmt, prompts_per_topic,
-                      topic="", resolution="", variant_index=0):
+    def _build_config(self, workflow_name, output_dir, format, prompts_per_topic):
         return {
             "workflow_name": workflow_name,
             "output_dir": output_dir,
-            "format": fmt,
+            "format": format,
             "prompts_per_topic": prompts_per_topic,
-            "topic": topic,
-            "resolution": resolution,
-            "variant_index": variant_index,
         }
 
     def scan(self, workflow_name, topic_list, resolution_list,
@@ -71,20 +62,19 @@ class GapScannerNode:
 
         if not workflow_name:
             cfg = self._build_config("", output_dir, format, prompts_per_topic)
-            return (512, 512, False, "ERROR: workflow_name is required", cfg)
+            return ("", "", 512, 512, 0, False, "ERROR: workflow_name is required", cfg)
 
         workflow_name = sanitize_name(workflow_name)
+        cfg = self._build_config(workflow_name, output_dir, format, prompts_per_topic)
 
         # Parse inputs
         topics = [t.strip() for t in topic_list.strip().splitlines() if t.strip()]
         resolutions = [r.strip() for r in resolution_list.strip().splitlines() if r.strip()]
 
         if not topics:
-            cfg = self._build_config(workflow_name, output_dir, format, prompts_per_topic)
-            return (512, 512, True, "ERROR: No topics provided", cfg)
+            return ("", "", 512, 512, 0, True, "ERROR: No topics provided", cfg)
         if not resolutions:
-            cfg = self._build_config(workflow_name, output_dir, format, prompts_per_topic)
-            return (512, 512, True, "ERROR: No resolutions provided", cfg)
+            return ("", "", 512, 512, 0, True, "ERROR: No resolutions provided", cfg)
 
         workflow_dir = os.path.join(output_dir, workflow_name)
 
@@ -117,8 +107,7 @@ class GapScannerNode:
         if gap is None:
             total = len(matrix)
             status = f"{workflow_name} | COMPLETE | {total}/{total} (100%)"
-            cfg = self._build_config(workflow_name, output_dir, format, prompts_per_topic)
-            return (512, 512, True, status, cfg)
+            return ("", "", 512, 512, 0, True, status, cfg)
 
         topic = gap["topic"]
         resolution = gap["resolution"]
@@ -145,11 +134,7 @@ class GapScannerNode:
             f"{len(skipped)} skipped"
         )
 
-        cfg = self._build_config(workflow_name, output_dir, format, prompts_per_topic,
-                                 topic=original_topic, resolution=resolution,
-                                 variant_index=variant_index)
-
-        return (width, height, False, status, cfg)
+        return (original_topic, resolution, width, height, variant_index, False, status, cfg)
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):

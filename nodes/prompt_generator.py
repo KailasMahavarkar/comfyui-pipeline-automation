@@ -1,4 +1,4 @@
-"""PromptGenerator node — generates prompt variants via mutations."""
+"""PromptGenerator node — generates prompt variants via mutations or custom list."""
 
 import json
 import os
@@ -31,7 +31,10 @@ def _save_prompt_cache(cache_dir: str, topic: str, data: dict):
 class PromptGenerator:
     """Generates prompt variants from a base template + topic.
 
-    Reads topic, resolution, variant_index from PIPELINE_CONFIG.
+    Variant source priority:
+        1. prompt_list  — PROMPT_LIST from Prompt List node, picked by variant_index
+        2. (default)    — local mutation strategies, cached
+
     For LLM-enhanced prompts, wire the output through a Prompt Refiner node.
     """
 
@@ -44,20 +47,30 @@ class PromptGenerator:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "pipeline_config": ("PIPELINE_CONFIG",),
+                "topic": ("STRING", {"default": ""}),
+                "variant_index": ("INT", {"default": 0, "min": 0, "max": 10000}),
                 "base_prompt_template": ("STRING", {"multiline": True, "default": "a beautiful {topic}, highly detailed"}),
                 "base_negative_prompt": ("STRING", {"multiline": True, "default": "blurry, watermark, text, low quality"}),
+                "prompts_per_topic": ("INT", {"default": 50, "min": 1, "max": 10000}),
+            },
+            "optional": {
+                "pipeline_config": ("PIPELINE_CONFIG",),
+                "resolution": ("STRING", {"default": "512x512"}),
             },
         }
 
-    def generate(self, pipeline_config, base_prompt_template, base_negative_prompt):
+    def generate(self, topic, variant_index, base_prompt_template,
+                 base_negative_prompt, prompts_per_topic,
+                 pipeline_config=None, resolution="512x512"):
 
-        workflow_name = pipeline_config.get("workflow_name", "")
-        output_dir = pipeline_config.get("output_dir", "output")
-        prompts_per_topic = pipeline_config.get("prompts_per_topic", 50)
-        topic = pipeline_config.get("topic", "")
-        resolution = pipeline_config.get("resolution", "512x512")
-        variant_index = pipeline_config.get("variant_index", 0)
+        # PIPELINE_CONFIG overrides manual fields
+        if pipeline_config:
+            workflow_name = pipeline_config.get("workflow_name", "")
+            output_dir = pipeline_config.get("output_dir", "output")
+            prompts_per_topic = pipeline_config.get("prompts_per_topic", prompts_per_topic)
+        else:
+            workflow_name = ""
+            output_dir = "output"
 
         if not topic:
             return ("", base_negative_prompt, "{}")
@@ -106,21 +119,30 @@ class PromptGenerator:
             prompt = resolved_base
             strategy = "fallback"
 
+        return self._build_result(
+            prompt, base_negative_prompt, strategy,
+            variant_index, prompts_per_topic,
+            workflow_name, sanitized_topic,
+            cached.get("tags", {}), cached.get("tag_sources", {}),
+        )
+
+    def _build_result(self, prompt, negative_prompt, strategy,
+                      variant_index, total_variants,
+                      workflow_name, sanitized_topic, tags, tag_sources):
         metadata_dict = {
             "prompt": prompt,
-            "negative_prompt": base_negative_prompt,
-            "tags": cached.get("tags", {}),
-            "tag_sources": cached.get("tag_sources", {}),
+            "negative_prompt": negative_prompt,
+            "tags": tags,
+            "tag_sources": tag_sources,
             "pipeline": {
                 "workflow_name": workflow_name or "unnamed",
                 "topic": sanitized_topic,
                 "variant_index": variant_index,
                 "variant_strategy": strategy,
-                "total_variants": prompts_per_topic,
+                "total_variants": total_variants,
             },
         }
-
-        return (prompt, base_negative_prompt, json.dumps(metadata_dict, ensure_ascii=False))
+        return (prompt, negative_prompt, json.dumps(metadata_dict, ensure_ascii=False))
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
