@@ -6,7 +6,8 @@ WEB_DIRECTORY = None
 
 try:
     from .nodes import (SaveAs, APICall, CRONScheduler,
-                        LLMConfig, GapScannerNode, PromptGenerator)
+                        LLMConfig, GapScannerNode, PromptGenerator,
+                        PromptList, TagBank)
 
     NODE_CLASS_MAPPINGS = {
         "CRONScheduler": CRONScheduler,
@@ -15,6 +16,8 @@ try:
         "LLMConfig": LLMConfig,
         "SaveAs": SaveAs,
         "APICall": APICall,
+        "PromptList": PromptList,
+        "TagBank": TagBank,
     }
 
     NODE_DISPLAY_NAME_MAPPINGS = {
@@ -24,6 +27,8 @@ try:
         "LLMConfig": "LLM Config",
         "SaveAs": "Save As",
         "APICall": "API Call",
+        "PromptList": "Prompt List",
+        "TagBank": "Tag Bank",
     }
 except ImportError:
     pass

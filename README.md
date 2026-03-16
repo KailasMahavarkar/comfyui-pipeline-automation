@@ -32,8 +32,9 @@ Restart ComfyUI. All nodes appear under **Pipeline Automation** in the node menu
 
 | Color | Meaning |
 |-------|---------|
-| **Blue** | Custom pipeline nodes (Gap Scanner, Prompt Generator, CRON Scheduler, Save As) |
+| **Blue** | Pipeline nodes (Gap Scanner, Prompt Generator, CRON Scheduler, Save As) |
 | **Purple** | LLM/API nodes (LLM Config, API Call) |
+| **Green** | Optional primitives (Prompt List, Tag Bank) |
 | **Gray** | Standard ComfyUI nodes (CLIP Encode, KSampler, VAE Decode, Empty Latent) |
 
 ### How It Works
@@ -111,9 +112,8 @@ If LLM fails, falls back to mutations silently. Tags are always generated via th
 | `pipeline_config` | PIPELINE_CONFIG | — | Optional shared settings |
 | `resolution` | STRING | `512x512` | For resolution-aware tags |
 | `llm_config` | LLM_CONFIG | — | Optional: enables LLM variant generation and LLM tag generation |
-| `custom_word_bank_path` | STRING | — | Path to custom word bank directory |
-| `topic_tag_bank` | STRING | — | Extra tags per topic (multiline) |
-| `prompt_list` | STRING | — | Custom prompts (newline-separated or JSON array) — overrides all generation |
+| `prompt_list` | PROMPT_LIST | — | Custom prompts from Prompt List node — overrides all generation |
+| `tag_bank` | TAG_BANK | — | Custom word banks and topic tags from Tag Bank node |
 
 **Outputs:**
 
@@ -245,6 +245,43 @@ Calls any REST API (OpenAI-compatible preset or generic). Supports configurable 
 | `metadata` | STRING | JSON of all extracted fields |
 | `raw_response` | STRING | Raw API response string |
 
+---
+
+### Prompt List
+
+Accepts user-provided prompts and outputs a typed `PROMPT_LIST` object. When connected to Prompt Generator, overrides all other variant generation (LLM and mutations). Supports newline-separated text or a JSON array of strings.
+
+**Inputs:**
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `prompts` | STRING | — | Prompts (one per line or JSON array) |
+
+**Outputs:**
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `prompt_list` | PROMPT_LIST | Parsed prompt list for Prompt Generator |
+
+---
+
+### Tag Bank
+
+Bundles custom word bank paths and per-topic curated tags into a typed `TAG_BANK` object. When connected to Prompt Generator, provides custom synonyms/styles for mutation strategies and curated tags for metadata enrichment.
+
+**Inputs:**
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `custom_word_bank_path` | STRING | — | Path to custom word bank directory |
+| `topic_tag_bank` | STRING | — | Per-topic curated tags (JSON mapping) |
+
+**Outputs:**
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `tag_bank` | TAG_BANK | Word bank config for Prompt Generator |
+
 ## Wiring Map
 
 | Source | Output | Type | Target | Input |
@@ -266,7 +303,7 @@ Calls any REST API (OpenAI-compatible preset or generic). Supports configurable 
 
 ## Custom Types
 
-Two dict-based types are passed between nodes:
+Four dict-based types are passed between nodes:
 
 **PIPELINE_CONFIG:**
 ```python
@@ -287,6 +324,21 @@ Two dict-based types are passed between nodes:
     "model": "anthropic/claude-3-haiku",
     "temperature": 0.7,
     "max_tokens": 200
+}
+```
+
+**PROMPT_LIST:**
+```python
+{
+    "prompts": ["a sunset over the ocean", "a mountain landscape at dawn", ...]
+}
+```
+
+**TAG_BANK:**
+```python
+{
+    "word_bank_path": "/path/to/custom/word_banks",
+    "topic_tags": "{\"sunset\": {\"content\": [\"beach\", \"horizon\"]}}"
 }
 ```
 

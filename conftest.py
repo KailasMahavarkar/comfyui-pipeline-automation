@@ -7,4 +7,6 @@ collect_ignore = [
     "llm_config.py",
     "gap_scanner.py",
     "prompt_generator.py",
+    "prompt_list.py",
+    "tag_bank.py",
 ]
