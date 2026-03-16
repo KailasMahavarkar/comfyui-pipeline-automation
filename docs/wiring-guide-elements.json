@@ -1,0 +1,49 @@
+[
+  { "type": "text", "text": "ComfyUI Pipeline Automation — Wiring Guide", "position": "above" },
+
+  { "type": "zone", "id": "config_zone", "label": "Config & Input", "children": ["gap_scanner", "llm_config"] },
+  { "type": "zone", "id": "optional_zone", "label": "Optional Primitives", "children": ["prompt_list_node", "tag_bank_node", "webhook_node"] },
+  { "type": "zone", "id": "prompt_zone", "label": "Prompt Generation", "children": ["prompt_generator"] },
+  { "type": "zone", "id": "comfyui_zone", "label": "ComfyUI Standard", "children": ["load_checkpoint", "empty_latent", "clip_pos", "clip_neg", "ksampler", "vae_decode"] },
+  { "type": "zone", "id": "output_zone", "label": "Output", "children": ["save_as", "cron_scheduler"] },
+
+  { "type": "rectangle", "id": "gap_scanner",       "text": "Gap Scanner",         "backgroundColor": "#74c0fc" },
+  { "type": "rectangle", "id": "llm_config",         "text": "LLM Config",           "backgroundColor": "#b197fc" },
+  { "type": "rectangle", "id": "prompt_list_node",   "text": "Prompt List",          "backgroundColor": "#b2f2bb" },
+  { "type": "rectangle", "id": "tag_bank_node",      "text": "Tag Bank",             "backgroundColor": "#b2f2bb" },
+  { "type": "rectangle", "id": "webhook_node",       "text": "Webhook",              "backgroundColor": "#b2f2bb" },
+  { "type": "rectangle", "id": "prompt_generator",   "text": "Prompt Generator",     "backgroundColor": "#74c0fc" },
+  { "type": "rectangle", "id": "load_checkpoint",    "text": "Load Checkpoint",      "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "empty_latent",       "text": "Empty Latent",         "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "clip_pos",           "text": "CLIP Encode (+)",      "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "clip_neg",           "text": "CLIP Encode (−)",      "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "ksampler",           "text": "KSampler",             "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "vae_decode",         "text": "VAE Decode",           "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "save_as",            "text": "Save As",              "backgroundColor": "#74c0fc" },
+  { "type": "rectangle", "id": "cron_scheduler",     "text": "CRON Scheduler",       "backgroundColor": "#74c0fc" },
+
+  { "type": "arrow", "from": "gap_scanner",       "to": "prompt_generator",  "text": "topic / resolution / variant_index" },
+  { "type": "arrow", "from": "gap_scanner",       "to": "prompt_generator",  "text": "PIPELINE_CONFIG", "strokeStyle": "dashed" },
+  { "type": "arrow", "from": "gap_scanner",       "to": "empty_latent",      "text": "width / height" },
+  { "type": "arrow", "from": "gap_scanner",       "to": "cron_scheduler",    "text": "is_complete" },
+  { "type": "arrow", "from": "gap_scanner",       "to": "save_as",           "text": "PIPELINE_CONFIG", "strokeStyle": "dashed" },
+
+  { "type": "arrow", "from": "llm_config",        "to": "prompt_generator",  "text": "LLM_CONFIG", "strokeStyle": "dashed" },
+  { "type": "arrow", "from": "prompt_list_node",  "to": "prompt_generator",  "text": "PROMPT_LIST", "strokeStyle": "dashed" },
+  { "type": "arrow", "from": "tag_bank_node",     "to": "prompt_generator",  "text": "TAG_BANK", "strokeStyle": "dashed" },
+
+  { "type": "arrow", "from": "load_checkpoint",   "to": "ksampler",          "text": "model" },
+  { "type": "arrow", "from": "load_checkpoint",   "to": "clip_pos",          "text": "clip" },
+  { "type": "arrow", "from": "load_checkpoint",   "to": "clip_neg",          "text": "clip" },
+  { "type": "arrow", "from": "load_checkpoint",   "to": "vae_decode",        "text": "vae" },
+
+  { "type": "arrow", "from": "prompt_generator",  "to": "clip_pos",          "text": "prompt" },
+  { "type": "arrow", "from": "prompt_generator",  "to": "clip_neg",          "text": "negative" },
+  { "type": "arrow", "from": "prompt_generator",  "to": "save_as",           "text": "metadata" },
+
+  { "type": "arrow", "from": "clip_pos",          "to": "ksampler",          "text": "positive" },
+  { "type": "arrow", "from": "clip_neg",          "to": "ksampler",          "text": "negative" },
+  { "type": "arrow", "from": "empty_latent",      "to": "ksampler",          "text": "latent" },
+  { "type": "arrow", "from": "ksampler",          "to": "vae_decode",        "text": "LATENT" },
+  { "type": "arrow", "from": "vae_decode",        "to": "save_as",           "text": "image" }
+]
