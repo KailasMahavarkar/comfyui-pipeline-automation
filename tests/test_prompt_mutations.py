@@ -1,13 +1,11 @@
-"""Tests for lib/prompt_mutations — generate_variants, generate_variants_via_llm, parse_prompt_list."""
+"""Tests for lib/prompt_mutations — generate_variants, parse_prompt_list."""
 
-import json
 import sys
 import os
-from unittest.mock import patch, MagicMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from lib.prompt_mutations import generate_variants, generate_variants_via_llm, parse_prompt_list, ALL_STRATEGIES
+from lib.prompt_mutations import generate_variants, parse_prompt_list, ALL_STRATEGIES
 
 
 # ---------------------------------------------------------------------------
@@ -47,76 +45,6 @@ class TestGenerateVariants:
         a = generate_variants("a mountain lake", num_variants=10, seed=1)
         b = generate_variants("a mountain lake", num_variants=10, seed=2)
         assert [v["prompt"] for v in a] != [v["prompt"] for v in b]
-
-
-# ---------------------------------------------------------------------------
-# generate_variants_via_llm
-# ---------------------------------------------------------------------------
-
-LLM_CONFIG = {
-    "api_url": "http://localhost:1234/v1/chat/completions",
-    "api_key": "test-key",
-    "model": "test-model",
-    "temperature": 0.7,
-}
-
-
-def _mock_llm_response(prompts: list[str]):
-    """Build a mock urllib response returning a JSON array of prompts."""
-    content = json.dumps(prompts)
-    response_body = json.dumps({
-        "choices": [{"message": {"content": content}}]
-    }).encode("utf-8")
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = response_body
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-    return mock_resp
-
-
-class TestGenerateVariantsViaLLM:
-    def test_returns_variants_on_success(self):
-        prompts = [f"prompt variant {i}" for i in range(5)]
-        with patch("urllib.request.urlopen", return_value=_mock_llm_response(prompts)):
-            variants = generate_variants_via_llm("base prompt", 5, "sunset", LLM_CONFIG)
-        assert len(variants) == 5
-        assert all(v["strategy"] == "llm" for v in variants)
-        assert [v["prompt"] for v in variants] == prompts
-
-    def test_variant_index_is_sequential(self):
-        prompts = ["a", "b", "c"]
-        with patch("urllib.request.urlopen", return_value=_mock_llm_response(prompts)):
-            variants = generate_variants_via_llm("base", 3, "topic", LLM_CONFIG)
-        assert [v["variant_index"] for v in variants] == [0, 1, 2]
-
-    def test_returns_empty_on_network_error(self):
-        with patch("urllib.request.urlopen", side_effect=OSError("connection refused")):
-            variants = generate_variants_via_llm("base", 5, "topic", LLM_CONFIG)
-        assert variants == []
-
-    def test_returns_empty_when_no_api_url(self):
-        variants = generate_variants_via_llm("base", 5, "topic", {"api_url": ""})
-        assert variants == []
-
-    def test_returns_empty_on_non_array_response(self):
-        bad_body = json.dumps({
-            "choices": [{"message": {"content": '{"error": "oops"}'}}]
-        }).encode("utf-8")
-        mock_resp = MagicMock()
-        mock_resp.read.return_value = bad_body
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        with patch("urllib.request.urlopen", return_value=mock_resp):
-            variants = generate_variants_via_llm("base", 5, "topic", LLM_CONFIG)
-        assert variants == []
-
-    def test_filters_empty_strings(self):
-        prompts = ["valid prompt", "", "  ", "another valid"]
-        with patch("urllib.request.urlopen", return_value=_mock_llm_response(prompts)):
-            variants = generate_variants_via_llm("base", 4, "topic", LLM_CONFIG)
-        assert len(variants) == 2
-        assert variants[0]["prompt"] == "valid prompt"
-        assert variants[1]["prompt"] == "another valid"
 
 
 # ---------------------------------------------------------------------------

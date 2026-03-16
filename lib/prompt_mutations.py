@@ -1,8 +1,7 @@
 """Prompt variation engine.
 
-Three variant sources, same output format:
-    mutations        - 6 local strategies, zero API calls (default fallback)
-    llm              - one LLM call per topic, N variants returned and cached
+Two variant sources, same output format:
+    mutations        - 6 local strategies, zero API calls
     custom_list      - user-provided prompts, picked by variant_index
 
 Mutation strategies:
@@ -15,13 +14,9 @@ Mutation strategies:
 """
 
 import json
-import logging
 import random
 import re
-import urllib.request
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
 
 WORD_BANKS_DIR = Path(__file__).parent.parent / "word_banks"
 
@@ -216,84 +211,6 @@ def generate_variants(base_prompt: str, num_variants: int = 10,
         })
 
     return variants
-
-
-def generate_variants_via_llm(base_prompt: str, num_variants: int,
-                               topic: str, llm_config: dict) -> list[dict]:
-    """Generate N prompt variants via a single LLM call.
-
-    Makes one API call, asks the LLM for num_variants distinct prompts, and
-    returns them in the same format as generate_variants. Returns [] on any
-    failure so the caller can fall back to mutation-based generation.
-
-    Args:
-        base_prompt: Resolved base prompt (topic already substituted).
-        num_variants: How many variants to request.
-        topic: Topic string (used in the LLM prompt for context).
-        llm_config: LLM_CONFIG dict with api_url, api_key, model, temperature.
-
-    Returns:
-        List of dicts with keys: prompt, strategy="llm", variant_index.
-    """
-    from .response_parser import auto_parse_json
-
-    api_url = llm_config.get("api_url", "")
-    api_key = llm_config.get("api_key", "")
-    model = llm_config.get("model", "gpt-3.5-turbo")
-    temperature = llm_config.get("temperature", 0.7)
-
-    if not api_url:
-        return []
-
-    user_msg = (
-        f"You are an image prompt variation generator. "
-        f"Generate {num_variants} distinct image generation prompts based on this topic and base prompt. "
-        f"Vary style, mood, composition, and details across variants.\n\n"
-        f"Topic: {topic}\n"
-        f"Base prompt: {base_prompt}\n\n"
-        f"Return ONLY a JSON array of {num_variants} prompt strings. No explanation, no markdown."
-    )
-
-    body = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "user", "content": user_msg},
-        ],
-        "temperature": temperature,
-        "max_tokens": 4096,
-    }).encode("utf-8")
-
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    try:
-        req = urllib.request.Request(api_url, data=body, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-
-        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
-        parsed = auto_parse_json(content)
-
-        if not isinstance(parsed, list):
-            logger.warning("LLM variant generation: response was not a JSON array")
-            return []
-
-        variants = []
-        for i, item in enumerate(parsed):
-            if isinstance(item, str) and item.strip():
-                variants.append({
-                    "prompt": item.strip(),
-                    "strategy": "llm",
-                    "variant_index": i,
-                })
-
-        logger.info("LLM generated %d prompt variants for topic '%s'", len(variants), topic)
-        return variants
-
-    except Exception as e:
-        logger.warning("LLM variant generation failed for topic '%s': %s", topic, e)
-        return []
 
 
 def parse_prompt_list(prompt_list: str) -> list[dict]:

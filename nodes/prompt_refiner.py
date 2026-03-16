@@ -9,10 +9,19 @@ logger = logging.getLogger(__name__)
 # Cache refined prompts to avoid re-calling LLM on crash recovery
 _refine_cache: dict[str, str] = {}
 
+PROVIDER_URLS = {
+    "OpenRouter": "https://openrouter.ai/api/v1/chat/completions",
+    "OpenAI": "https://api.openai.com/v1/chat/completions",
+    "Ollama": "http://localhost:11434/v1/chat/completions",
+    "LM Studio": "http://localhost:1234/v1/chat/completions",
+    "Custom": "",
+}
+
 
 class PromptRefiner:
-    """Takes a raw prompt, calls an LLM to enhance it, outputs the refined version.
-    Caches results per input prompt so crash recovery doesn't re-call the LLM."""
+    """Enhances a prompt via LLM. Drop between Prompt Generator and CLIP Encode.
+    Caches results per input prompt — crash recovery doesn't re-call the LLM.
+    Falls back to original prompt silently on failure."""
 
     CATEGORY = "Pipeline Automation"
     RETURN_TYPES = ("STRING", "STRING")
@@ -24,9 +33,14 @@ class PromptRefiner:
         return {
             "required": {
                 "prompt": ("STRING", {"forceInput": True}),
-                "llm_config": ("LLM_CONFIG",),
+                "provider": (list(PROVIDER_URLS.keys()),),
+                "model": ("STRING", {"default": "google/gemini-3.1-flash-lite-preview"}),
+                "api_key": ("STRING", {"default": ""}),
             },
             "optional": {
+                "api_url_override": ("STRING", {"default": ""}),
+                "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05}),
+                "max_tokens": ("INT", {"default": 300, "min": 50, "max": 4096}),
                 "instruction": ("STRING", {
                     "multiline": True,
                     "default": "Enhance this image generation prompt. Make it more detailed and vivid. Keep it as a single prompt, no explanations. Return ONLY the enhanced prompt text.",
@@ -34,30 +48,28 @@ class PromptRefiner:
             },
         }
 
-    def refine(self, prompt, llm_config, instruction=""):
+    def refine(self, prompt, provider, model, api_key,
+               api_url_override="", temperature=0.7, max_tokens=300,
+               instruction=""):
+
         if not prompt or not prompt.strip():
             return ("", "")
 
-        # Check cache
-        cache_key = f"{prompt}:{llm_config.get('model', '')}"
-        if cache_key in _refine_cache:
-            return (_refine_cache[cache_key], prompt)
-
-        api_url = llm_config.get("api_url", "")
-        api_key = llm_config.get("api_key", "")
-        model = llm_config.get("model", "")
-        temperature = llm_config.get("temperature", 0.7)
-        max_tokens = llm_config.get("max_tokens", 200)
-
+        # Resolve API URL
+        api_url = api_url_override.strip() if api_url_override and api_url_override.strip() else PROVIDER_URLS.get(provider, "")
         if not api_url:
             return (prompt, prompt)
+
+        # Check cache
+        cache_key = f"{prompt}:{model}"
+        if cache_key in _refine_cache:
+            return (_refine_cache[cache_key], prompt)
 
         default_instruction = (
             "Enhance this image generation prompt. Make it more detailed and vivid. "
             "Keep it as a single prompt, no explanations. Return ONLY the enhanced prompt text."
         )
         inst = instruction.strip() if instruction and instruction.strip() else default_instruction
-
         user_msg = f"{inst}\n\nPrompt: {prompt}"
 
         body = json.dumps({
