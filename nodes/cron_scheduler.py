@@ -27,6 +27,7 @@ _scheduler_stop = threading.Event()
 _run_count = 0
 _lock = threading.Lock()
 _last_prompt: dict | None = None
+_client_id: str | None = None
 
 
 def _stop_existing():
@@ -55,6 +56,7 @@ def _check_queue_busy(api_url: str) -> bool:
 
 def _fetch_last_prompt(api_url: str) -> dict | None:
     """Fetch the most recent workflow from ComfyUI /history."""
+    global _client_id
     try:
         req = urllib.request.Request(f"{api_url.rstrip('/')}/history?max_items=1")
         with urllib.request.urlopen(req, timeout=5) as resp:
@@ -63,6 +65,9 @@ def _fetch_last_prompt(api_url: str) -> dict | None:
             return None
         latest = next(iter(data.values()))
         prompt_data = latest.get("prompt", [])
+        # Extract client_id from extra_data so UI shows progress
+        if len(prompt_data) >= 4 and isinstance(prompt_data[3], dict):
+            _client_id = prompt_data[3].get("client_id")
         if len(prompt_data) >= 3:
             return prompt_data[2]
         return None
@@ -95,7 +100,10 @@ def _requeue_workflow(api_url: str) -> str | None:
 
     try:
         url = f"{api_url.rstrip('/')}/prompt"
-        body = json.dumps({"prompt": prompt}).encode("utf-8")
+        payload = {"prompt": prompt}
+        if _client_id:
+            payload["client_id"] = _client_id
+        body = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             result = json.loads(resp.read().decode("utf-8"))
