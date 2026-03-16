@@ -115,12 +115,14 @@ def _scheduler_loop(cron_expr: str, api_url: str, mode: str,
 
 
 class CRONScheduler:
-    """Re-queues workflow on cron schedule via background thread."""
+    """Re-queues workflow on cron schedule via background thread.
+    Marked as OUTPUT_NODE so it always executes without needing a passthrough."""
 
     CATEGORY = "Pipeline Automation"
-    RETURN_TYPES = ("STRING", "*")
-    RETURN_NAMES = ("status", "passthrough")
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("status",)
     FUNCTION = "schedule"
+    OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -135,14 +137,13 @@ class CRONScheduler:
             },
             "optional": {
                 "external_command": ("STRING", {"default": ""}),
-                "passthrough": ("*",),
                 "is_complete": ("BOOLEAN", {"default": False}),
             },
         }
 
     def schedule(self, schedule_preset, cron_expression, enabled, mode,
                  comfyui_api_url, max_iterations,
-                 external_command="", passthrough=None, is_complete=False):
+                 external_command="", is_complete=False):
         global _scheduler_thread, _run_count
 
         # Determine actual cron expression
@@ -155,13 +156,13 @@ class CRONScheduler:
         if is_complete:
             _stop_existing()
             status = f"DONE | runs: {_run_count} | pipeline complete"
-            return (status, passthrough)
+            return (status,)
 
         # Handle disabled
         if not enabled:
             _stop_existing()
             status = "OFF"
-            return (status, passthrough)
+            return (status,)
 
         # Start or restart scheduler
         _stop_existing()
@@ -183,7 +184,7 @@ class CRONScheduler:
         preset_label = schedule_preset if schedule_preset != "Custom" else actual_cron
         status = f"ON | {preset_label} | next: {next_run.isoformat()} | runs: {_run_count}"
 
-        return (status, passthrough)
+        return (status,)
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):

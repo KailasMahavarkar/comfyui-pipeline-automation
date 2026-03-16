@@ -154,7 +154,7 @@ Structured LLM connection settings with provider presets. Outputs a typed `LLM_C
 
 ### CRON Scheduler
 
-Re-queues the current workflow on a schedule via a background thread. Skips ticks when ComfyUI's queue is busy. Stops automatically when `is_complete` is true. Passthrough accepts any type (IMAGE, LATENT, STRING, etc.) so it can sit anywhere in the graph.
+Re-queues the current workflow on a schedule via a background thread. Skips ticks when ComfyUI's queue is busy. Stops automatically when `is_complete` is true. Marked as `OUTPUT_NODE` so it always executes — no passthrough wiring needed.
 
 **Inputs:**
 
@@ -167,7 +167,6 @@ Re-queues the current workflow on a schedule via a background thread. Skips tick
 | `comfyui_api_url` | STRING | `http://127.0.0.1:8188` | ComfyUI API endpoint |
 | `max_iterations` | INT | `0` | Max iterations (0 = unlimited) |
 | `external_command` | STRING | — | Shell command for run_command mode |
-| `passthrough` | * | — | Any-type passthrough |
 | `is_complete` | BOOLEAN | `false` | Stops scheduler when true |
 
 **Outputs:**
@@ -175,7 +174,6 @@ Re-queues the current workflow on a schedule via a background thread. Skips tick
 | Output | Type | Description |
 |--------|------|-------------|
 | `status` | STRING | Scheduler state |
-| `passthrough` | * | Any-type passthrough |
 
 ---
 
@@ -296,7 +294,6 @@ Bundles custom word bank paths and per-topic curated tags into a typed `TAG_BANK
 | Prompt Generator | `prompt` | STRING | CLIP Text Encode | `text` |
 | Prompt Generator | `negative_prompt` | STRING | CLIP Text Encode (neg) | `text` |
 | Prompt Generator | `metadata` | STRING | Save As | `metadata` |
-| CRON Scheduler | `passthrough` | * | Save As | `image` |
 
 ## Custom Types
 

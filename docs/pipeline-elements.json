@@ -36,6 +36,5 @@
   { "type": "arrow", "from": "clip_pos",         "to": "ksampler" },
   { "type": "arrow", "from": "clip_neg",         "to": "ksampler" },
   { "type": "arrow", "from": "ksampler",         "to": "vae_decode" },
-  { "type": "arrow", "from": "vae_decode",       "to": "cron_scheduler",    "text": "image" },
-  { "type": "arrow", "from": "cron_scheduler",   "to": "save_as",           "text": "passthrough" }
+  { "type": "arrow", "from": "vae_decode",       "to": "save_as",            "text": "image" }
 ]
