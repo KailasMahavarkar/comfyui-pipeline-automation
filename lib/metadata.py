@@ -5,7 +5,6 @@ Audio/video formats are handled separately when those nodes are built.
 """
 
 import json
-from io import BytesIO
 from PIL import Image, PngImagePlugin
 
 METADATA_KEY = "comfyui_metadata"

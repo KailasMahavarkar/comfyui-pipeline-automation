@@ -2,7 +2,6 @@
 
 import json
 import threading
-import time
 import logging
 import urllib.request
 import urllib.error

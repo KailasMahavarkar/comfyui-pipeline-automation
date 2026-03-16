@@ -4,13 +4,13 @@ Automated batch image generation for ComfyUI. Turns manual one-at-a-time workflo
 
 ## Installation
 
-Clone into your ComfyUI `custom_nodes` directory and install dependencies:
+Clone into your ComfyUI `custom_nodes` directory and run the setup script:
 
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/KailasMahavarkar/comfyui-pipeline-automation.git
 cd comfyui-pipeline-automation
-pip install -r requirements.txt
+python setup.py
 ```
 
 Restart ComfyUI. All nodes appear under **Pipeline Automation** in the node menu.
@@ -143,7 +143,7 @@ Re-queues the current workflow on a schedule via a background thread. Skips tick
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
-| `schedule_preset` | ENUM | — | Every 1/5/15/30 min, Hourly, Daily, Custom |
+| `schedule_preset` | ENUM | — | Every 1 min, Every 5 min, Every 15 min, Every 30 min, Hourly, Every 6 hours, Daily at midnight, Daily at 9 AM, Custom |
 | `cron_expression` | STRING | `*/5 * * * *` | Cron expression (used when preset is Custom) |
 | `enabled` | BOOLEAN | `false` | Enable/disable scheduling |
 | `mode` | ENUM | `requeue_workflow` | requeue_workflow, run_command, both |
@@ -190,6 +190,12 @@ Saves images with template-based filenames, organized subfolders, and rich metad
 - **Sidecar JSON**: Full metadata including tags, provenance, and pipeline state
 - **Manifest CSV**: Append-only global index of all outputs
 
+**Outputs:**
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `saved_paths` | STRING | Comma-separated saved file paths |
+
 ---
 
 ### API Call
@@ -212,6 +218,15 @@ Calls any REST API (OpenAI-compatible preset or generic). Supports configurable 
 | `api_key` | STRING | — | API key (manual) |
 | `headers` | STRING | — | Custom headers (JSON) |
 | `topic` | STRING | — | Available in request template as `{topic}` |
+
+**Outputs:**
+
+| Output | Type | Description |
+|--------|------|-------------|
+| `prompt` | STRING | Extracted prompt from response |
+| `negative_prompt` | STRING | Extracted negative prompt |
+| `metadata` | STRING | JSON of all extracted fields |
+| `raw_response` | STRING | Raw API response string |
 
 ---
 

@@ -3,11 +3,10 @@
 import pytest
 import sys
 import os
-import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from lib.fingerprint import compute_fingerprint, save_fingerprint, load_fingerprint, check_collision
+from lib.fingerprint import compute_fingerprint, load_fingerprint, check_collision
 
 
 @pytest.fixture

@@ -12,7 +12,6 @@ Strategies:
     template_fill    - Fill {mood}, {detail}, {style} wildcards from banks
 """
 
-import os
 import random
 import re
 from pathlib import Path
