@@ -45,8 +45,8 @@ class PromptGenerator:
         return {
             "required": {
                 "pipeline_config": ("PIPELINE_CONFIG",),
-                "base_prompt_template": ("STRING", {"multiline": True, "default": "a beautiful {topic}, highly detailed"}),
-                "base_negative_prompt": ("STRING", {"multiline": True, "default": "blurry, watermark, text, low quality"}),
+                "base_prompt_template": ("STRING", {"multiline": True, "default": "{topic}, highly detailed, sharp focus, professional quality"}),
+                "base_negative_prompt": ("STRING", {"multiline": True, "default": "blurry, low quality, watermark, text, deformed, ugly, distorted"}),
             },
         }
 
