@@ -56,15 +56,12 @@ class PromptGenerator:
             "optional": {
                 "pipeline_config": ("PIPELINE_CONFIG",),
                 "resolution": ("STRING", {"default": "512x512"}),
-                "prompt_list": ("PROMPT_LIST",),
-                "tag_bank": ("TAG_BANK",),
             },
         }
 
     def generate(self, topic, variant_index, base_prompt_template,
                  base_negative_prompt, prompts_per_topic,
-                 pipeline_config=None, resolution="512x512",
-                 prompt_list=None, tag_bank=None):
+                 pipeline_config=None, resolution="512x512"):
 
         # PIPELINE_CONFIG overrides manual fields
         if pipeline_config:
@@ -81,33 +78,7 @@ class PromptGenerator:
         sanitized_topic = sanitize_name(topic)
         resolved_base = base_prompt_template.replace("{topic}", topic)
 
-        # Unpack TAG_BANK
-        word_bank_path = None
-        topic_tag_bank = None
-        if tag_bank:
-            word_bank_path = tag_bank.get("word_bank_path")
-            topic_tag_bank = tag_bank.get("topic_tags")
-
-        # --- Priority 1: custom prompt list ---
-        if prompt_list and prompt_list.get("prompts"):
-            prompts = prompt_list["prompts"]
-            tags, tag_sources = generate_tags(
-                topic=topic,
-                base_prompt=resolved_base,
-                resolution=resolution,
-                topic_tag_bank=topic_tag_bank,
-            )
-            idx = variant_index % len(prompts)
-            prompt = prompts[idx]
-            strategy = "custom_list"
-
-            return self._build_result(
-                prompt, base_negative_prompt, strategy,
-                variant_index, prompts_per_topic,
-                workflow_name, sanitized_topic, tags, tag_sources,
-            )
-
-        # --- Priority 2: cache-backed mutation generation ---
+        # Cache-backed mutation generation
         cache_key = f"{workflow_name}:{sanitized_topic}" if workflow_name else sanitized_topic
         cached = _prompt_cache.get(cache_key)
 
@@ -119,14 +90,12 @@ class PromptGenerator:
             variants = generate_variants(
                 base_prompt=resolved_base,
                 num_variants=prompts_per_topic,
-                custom_word_bank_path=word_bank_path,
             )
 
             tags, tag_sources = generate_tags(
                 topic=topic,
                 base_prompt=resolved_base,
                 resolution=resolution,
-                topic_tag_bank=topic_tag_bank,
             )
 
             cached = {

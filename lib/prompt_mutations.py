@@ -13,7 +13,6 @@ Mutation strategies:
     template_fill    - Fill {mood}, {detail}, {style} wildcards from banks
 """
 
-import json
 import random
 import re
 from pathlib import Path
@@ -211,35 +210,3 @@ def generate_variants(base_prompt: str, num_variants: int = 10,
         })
 
     return variants
-
-
-def parse_prompt_list(prompt_list: str) -> list[dict]:
-    """Parse a user-provided prompt list into the standard variant format.
-
-    Accepts either a JSON array of strings or newline-separated prompts.
-    Empty lines are ignored.
-
-    Args:
-        prompt_list: Raw string input from the user.
-
-    Returns:
-        List of dicts with keys: prompt, strategy="custom_list", variant_index.
-    """
-    stripped = prompt_list.strip()
-    lines: list[str] = []
-
-    if stripped.startswith("["):
-        try:
-            parsed = json.loads(stripped)
-            if isinstance(parsed, list):
-                lines = [str(p).strip() for p in parsed if str(p).strip()]
-        except json.JSONDecodeError:
-            pass
-
-    if not lines:
-        lines = [ln.strip() for ln in stripped.splitlines() if ln.strip()]
-
-    return [
-        {"prompt": p, "strategy": "custom_list", "variant_index": i}
-        for i, p in enumerate(lines)
-    ]

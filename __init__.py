@@ -6,8 +6,7 @@ WEB_DIRECTORY = None
 
 try:
     from .nodes import (SaveAs, Webhook, CRONScheduler,
-                        GapScannerNode, PromptGenerator,
-                        PromptList, TagBank, PromptRefiner)
+                        GapScannerNode, PromptGenerator, PromptRefiner)
 
     NODE_CLASS_MAPPINGS = {
         "CRONScheduler": CRONScheduler,
@@ -15,8 +14,6 @@ try:
         "PromptGenerator": PromptGenerator,
         "SaveAs": SaveAs,
         "Webhook": Webhook,
-        "PromptList": PromptList,
-        "TagBank": TagBank,
         "PromptRefiner": PromptRefiner,
     }
 
@@ -26,8 +23,6 @@ try:
         "PromptGenerator": "Prompt Generator",
         "SaveAs": "Save As",
         "Webhook": "Webhook",
-        "PromptList": "Prompt List",
-        "TagBank": "Tag Bank",
         "PromptRefiner": "Prompt Refiner",
     }
 except ImportError:

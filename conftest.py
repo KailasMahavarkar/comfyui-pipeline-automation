@@ -6,7 +6,5 @@ collect_ignore = [
     "cron_scheduler.py",
     "gap_scanner.py",
     "prompt_generator.py",
-    "prompt_list.py",
-    "tag_bank.py",
     "prompt_refiner.py",
 ]
