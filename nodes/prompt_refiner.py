@@ -28,8 +28,8 @@ class PromptRefiner:
     Falls back to original prompt silently on failure."""
 
     CATEGORY = "Pipeline Automation"
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("refined_prompt", "refined_negative", "metadata")
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("refined_prompt", "refined_negative")
     FUNCTION = "refine"
 
     @classmethod
@@ -43,7 +43,6 @@ class PromptRefiner:
                 "api_key": ("STRING", {"default": ""}),
             },
             "optional": {
-                "pipeline_config": ("PIPELINE_CONFIG",),
                 "api_url_override": ("STRING", {"default": ""}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05}),
                 "max_tokens": ("INT", {"default": 500, "min": 50, "max": 4096}),
@@ -59,38 +58,23 @@ class PromptRefiner:
         }
 
     def refine(self, prompt, negative_prompt, provider, model, api_key,
-               pipeline_config=None, api_url_override="",
-               temperature=0.7, max_tokens=500,
+               api_url_override="", temperature=0.7, max_tokens=500,
                positive_guidance="", negative_guidance=""):
 
         if not prompt or not prompt.strip():
-            return ("", negative_prompt, "{}")
+            return ("", negative_prompt)
 
         # Resolve API URL
         api_url = api_url_override.strip() if api_url_override and api_url_override.strip() else PROVIDER_URLS.get(provider, "")
 
-        # Extract pipeline state for metadata
-        pipeline = {}
-        if pipeline_config:
-            pipeline = {
-                "workflow_name": pipeline_config.get("workflow_name", "unnamed"),
-                "topic": pipeline_config.get("topic", ""),
-                "resolution": pipeline_config.get("resolution", ""),
-                "variant_index": pipeline_config.get("variant_index", 0),
-                "total_variants": pipeline_config.get("prompts_per_topic", 0),
-            }
-
         # No API URL — pass through without refinement
         if not api_url:
-            metadata = self._build_metadata(prompt, negative_prompt, pipeline)
-            return (prompt, negative_prompt, metadata)
+            return (prompt, negative_prompt)
 
         # Check cache
         cache_key = f"{prompt}:{model}:{positive_guidance}:{negative_guidance}"
         if cache_key in _refine_cache:
-            refined, negative = _refine_cache[cache_key]
-            metadata = self._build_metadata(refined, negative, pipeline)
-            return (refined, negative, metadata)
+            return _refine_cache[cache_key]
 
         # Build LLM prompt
         parts = [
@@ -144,23 +128,14 @@ class PromptRefiner:
             if not negative:
                 negative = negative_prompt
 
-            _refine_cache[cache_key] = (refined, negative)
+            result_tuple = (refined, negative)
+            _refine_cache[cache_key] = result_tuple
             logger.info("Prompt refined: '%s...' → '%s...'", prompt[:40], refined[:40])
-            metadata = self._build_metadata(refined, negative, pipeline)
-            return (refined, negative, metadata)
+            return result_tuple
 
         except Exception as e:
             logger.warning("Prompt refinement failed, using original: %s", e)
-            metadata = self._build_metadata(prompt, negative_prompt, pipeline)
-            return (prompt, negative_prompt, metadata)
-
-    def _build_metadata(self, prompt, negative, pipeline):
-        metadata_dict = {
-            "prompt": prompt,
-            "negative_prompt": negative,
-            "pipeline": pipeline,
-        }
-        return json.dumps(metadata_dict, ensure_ascii=False)
+            return (prompt, negative_prompt)
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
