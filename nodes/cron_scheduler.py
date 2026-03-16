@@ -76,14 +76,16 @@ def _fetch_last_prompt(api_url: str) -> dict | None:
         return None
 
 
-def _check_prompt_completed(api_url: str, prompt_id: str) -> bool:
-    """Check if a specific prompt_id completed successfully via /history."""
+def _check_last_execution_completed(api_url: str) -> bool:
+    """Check if the most recent execution completed successfully."""
     try:
-        req = urllib.request.Request(f"{api_url.rstrip('/')}/history/{prompt_id}")
+        req = urllib.request.Request(f"{api_url.rstrip('/')}/history?max_items=1")
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        entry = data.get(prompt_id, {})
-        status = entry.get("status", {})
+        if not data:
+            return True  # No history yet, allow first run
+        latest = next(iter(data.values()))
+        status = latest.get("status", {})
         return status.get("completed", False) is True
     except Exception:
         return False
@@ -141,6 +143,11 @@ def _scheduler_loop(interval_seconds: int, api_url: str):
         if _check_queue_busy(api_url):
             continue
 
+        # Check if last execution completed (covers user-initiated and thread-initiated)
+        if not _check_last_execution_completed(api_url):
+            logger.info("Last execution was cancelled, stopping pipeline")
+            break
+
         # Re-queue
         prompt_id = _requeue_workflow(api_url)
         if not prompt_id:
@@ -152,9 +159,9 @@ def _scheduler_loop(interval_seconds: int, api_url: str):
         if _scheduler_stop.is_set():
             break
 
-        # Check immediately: did it complete or was it cancelled?
-        if not _check_prompt_completed(api_url, prompt_id):
-            logger.info("Execution cancelled (prompt %s not in history), stopping pipeline", prompt_id)
+        # Check again after this execution
+        if not _check_last_execution_completed(api_url):
+            logger.info("Execution was cancelled, stopping pipeline")
             break
 
         with _lock:
