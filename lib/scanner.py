@@ -25,7 +25,7 @@ class GapScanner:
 
     def __init__(self, output_dir: str, workflow_name: str):
         self.root = os.path.join(output_dir, workflow_name)
-        self._cache: set[str] = set()
+        self._counts: dict[str, int] = {}
         self._cache_built = False
         self._lock = threading.Lock()
         self._is_restart = True
@@ -69,56 +69,65 @@ class GapScanner:
                     })
         return matrix
 
-    def scan_existing(self, fmt: str = "png") -> set[str]:
-        """Scan filesystem for existing files. Returns set of relative paths (without extension)."""
+    def count_existing(self, fmt: str = "png") -> dict[str, int]:
+        """Count image files per topic/resolution directory.
+
+        Returns:
+            Dict mapping "topic/resolution" to file count.
+        """
         with self._lock:
             if self._cache_built:
-                return set(self._cache)
+                return dict(self._counts)
 
-        existing = set()
+        counts: dict[str, int] = {}
         if not os.path.exists(self.root):
             with self._lock:
-                self._cache = existing
+                self._counts = counts
                 self._cache_built = True
-            return existing
+            return dict(counts)
 
+        image_exts = {"png", "jpeg", "jpg", "webp", "gif"}
         for dirpath, _, filenames in os.walk(self.root):
             for fn in filenames:
                 if fn.startswith("."):
                     continue
-                base, ext = os.path.splitext(fn)
-                if ext.lstrip(".").lower() in ("png", "jpeg", "jpg", "webp", "gif"):
-                    rel = os.path.relpath(os.path.join(dirpath, base), self.root)
-                    existing.add(rel.replace("\\", "/"))
+                ext = os.path.splitext(fn)[1].lstrip(".").lower()
+                if ext in image_exts:
+                    rel_dir = os.path.relpath(dirpath, self.root).replace("\\", "/")
+                    counts[rel_dir] = counts.get(rel_dir, 0) + 1
 
         with self._lock:
-            self._cache = existing
+            self._counts = counts
             self._cache_built = True
             self._is_restart = False
 
-        return set(existing)
+        return dict(counts)
 
     def find_gaps(self, matrix: list[dict], fmt: str = "png",
                   skipped: set[str] | None = None) -> list[dict]:
         """Find entries in the matrix that don't have corresponding output files.
 
+        Counts files per topic/resolution directory and compares against
+        the expected variant count. Filename format doesn't matter.
+
         Args:
             matrix: The planned matrix from build_matrix().
             fmt: Expected file format extension.
-            skipped: Set of paths to skip (from strike counter).
+            skipped: Set of "topic/resolution" keys to skip.
 
         Returns:
             List of matrix entries that are missing.
         """
-        existing = self.scan_existing(fmt)
+        counts = self.count_existing(fmt)
         skipped = skipped or set()
         gaps = []
 
         for entry in matrix:
-            rel_path = entry["path"].replace("\\", "/")
-            if rel_path in skipped:
+            key = f"{entry['topic']}/{entry['resolution']}"
+            if key in skipped:
                 continue
-            if rel_path not in existing:
+            existing_count = counts.get(key, 0)
+            if entry["variant_index"] >= existing_count:
                 gaps.append(entry)
 
         return gaps
@@ -129,15 +138,10 @@ class GapScanner:
         gaps = self.find_gaps(matrix, fmt, skipped)
         return gaps[0] if gaps else None
 
-    def mark_complete(self, rel_path: str):
-        """Mark a path as complete in the cache (after successful save)."""
-        with self._lock:
-            self._cache.add(rel_path.replace("\\", "/"))
-
     def invalidate_cache(self):
         """Force a full rescan on next call."""
         with self._lock:
-            self._cache.clear()
+            self._counts.clear()
             self._cache_built = False
 
     def check_integrity(self, file_path: str, fmt: str = "png") -> bool:

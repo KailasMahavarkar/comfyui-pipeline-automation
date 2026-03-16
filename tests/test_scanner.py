@@ -57,34 +57,57 @@ class TestGapDetection:
         assert gap["topic"] == "cat"
 
     def test_no_gaps_when_complete(self, scanner, small_matrix, tmp_path):
-        # Create all expected files
-        for entry in small_matrix:
-            path = tmp_path / "test_workflow" / entry["path"]
-            path = path.with_suffix(".png")
-            os.makedirs(path.parent, exist_ok=True)
-            Image.new("RGB", (64, 64)).save(str(path), format="PNG")
+        # Create 2 files per topic/resolution directory (prompts_per_topic=2)
+        for topic in ["cat", "dog"]:
+            for res in ["512x512", "768x768"]:
+                d = tmp_path / "test_workflow" / topic / res
+                os.makedirs(d, exist_ok=True)
+                for i in range(2):
+                    Image.new("RGB", (64, 64)).save(str(d / f"img_{i}.png"), format="PNG")
 
         scanner.invalidate_cache()
         gap = scanner.find_first_gap(small_matrix)
         assert gap is None
 
-    def test_skipped_paths_excluded(self, scanner, small_matrix):
-        skipped = {small_matrix[0]["path"].replace("\\", "/")}
-        gaps = scanner.find_gaps(small_matrix, skipped=skipped)
-        assert len(gaps) == len(small_matrix) - 1
+    def test_partial_fills_show_remaining_gaps(self, scanner, small_matrix, tmp_path):
+        # Create 1 file for cat/512x512 (needs 2)
+        d = tmp_path / "test_workflow" / "cat" / "512x512"
+        os.makedirs(d, exist_ok=True)
+        Image.new("RGB", (64, 64)).save(str(d / "img_0.png"), format="PNG")
 
-    def test_mark_complete_updates_cache(self, scanner, small_matrix, tmp_path):
-        scanner.scan_existing()  # Build initial cache
-        # Create one file
-        entry = small_matrix[0]
-        path = tmp_path / "test_workflow" / entry["path"]
-        path = path.with_suffix(".png")
-        os.makedirs(path.parent, exist_ok=True)
-        Image.new("RGB", (64, 64)).save(str(path), format="PNG")
-
-        scanner.mark_complete(entry["path"])
+        scanner.invalidate_cache()
         gaps = scanner.find_gaps(small_matrix)
-        assert len(gaps) == len(small_matrix) - 1
+        # 1 of 2 filled for cat/512x512, rest all missing
+        # total = 8, filled = 1, gaps = 7
+        assert len(gaps) == 7
+
+    def test_skipped_paths_excluded(self, scanner, small_matrix):
+        skipped = {"cat/512x512"}
+        gaps = scanner.find_gaps(small_matrix, skipped=skipped)
+        # 2 entries for cat/512x512 skipped
+        assert len(gaps) == len(small_matrix) - 2
+
+    def test_invalidate_cache_forces_rescan(self, scanner, small_matrix, tmp_path):
+        # First scan: 0 files
+        gaps_before = scanner.find_gaps(small_matrix)
+        assert len(gaps_before) == len(small_matrix)
+
+        # Create files
+        for topic in ["cat", "dog"]:
+            for res in ["512x512", "768x768"]:
+                d = tmp_path / "test_workflow" / topic / res
+                os.makedirs(d, exist_ok=True)
+                for i in range(2):
+                    Image.new("RGB", (64, 64)).save(str(d / f"img_{i}.png"), format="PNG")
+
+        # Without invalidation, cache returns stale result
+        gaps_stale = scanner.find_gaps(small_matrix)
+        assert len(gaps_stale) == len(small_matrix)
+
+        # After invalidation, sees new files
+        scanner.invalidate_cache()
+        gaps_fresh = scanner.find_gaps(small_matrix)
+        assert len(gaps_fresh) == 0
 
 
 class TestIntegrityChecks:
