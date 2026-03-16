@@ -5,7 +5,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 WEB_DIRECTORY = None
 
 try:
-    from .nodes import (SaveAs, APICall, BulkPrompter, CRONScheduler,
+    from .nodes import (SaveAs, APICall, CRONScheduler,
                         LLMConfig, GapScannerNode, PromptGenerator)
 
     NODE_CLASS_MAPPINGS = {
@@ -15,7 +15,6 @@ try:
         "LLMConfig": LLMConfig,
         "SaveAs": SaveAs,
         "APICall": APICall,
-        "BulkPrompter": BulkPrompter,
     }
 
     NODE_DISPLAY_NAME_MAPPINGS = {
@@ -25,7 +24,6 @@ try:
         "LLMConfig": "LLM Config",
         "SaveAs": "Save As",
         "APICall": "API Call",
-        "BulkPrompter": "Bulk Prompter",
     }
 except ImportError:
     pass

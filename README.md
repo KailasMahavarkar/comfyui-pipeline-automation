@@ -34,7 +34,6 @@ Restart ComfyUI. All nodes appear under **Pipeline Automation** in the node menu
 |-------|---------|
 | **Blue** | Custom pipeline nodes (Gap Scanner, Prompt Generator, CRON Scheduler, Save As) |
 | **Purple** | LLM/API nodes (LLM Config, API Call) |
-| **Pink** | Standalone utility (Bulk Prompter) |
 | **Gray** | Standard ComfyUI nodes (CLIP Encode, KSampler, VAE Decode, Empty Latent) |
 
 ### How It Works
@@ -232,29 +231,6 @@ Calls any REST API (OpenAI-compatible preset or generic). Supports configurable 
 | `metadata` | STRING | JSON of all extracted fields |
 | `raw_response` | STRING | Raw API response string |
 
----
-
-### Bulk Prompter
-
-Generates N prompt variants from a base prompt using local mutation strategies. Zero API calls — uses bundled word banks. Standalone utility node.
-
-**Inputs:**
-
-| Input | Type | Default | Description |
-|-------|------|---------|-------------|
-| `base_prompt` | STRING | — | Base prompt to mutate |
-| `num_variants` | INT | `10` | Number of variants to generate |
-| `strategies` | STRING | all | Comma-separated strategy names |
-| `custom_word_bank_path` | STRING | — | Path to custom word bank JSON |
-| `seed` | INT | `-1` | Random seed (-1 = random) |
-
-**Outputs:**
-
-| Output | Type | Description |
-|--------|------|-------------|
-| `variants` | STRING | JSON array of prompt strings |
-| `count` | INT | Number of variants generated |
-
 ## Wiring Map
 
 | Source | Output | Type | Target | Input |
@@ -316,7 +292,7 @@ output/
 
 ## Standalone Use
 
-Save As, API Call, Bulk Prompter, and LLM Config work independently in any workflow — no pipeline required. Drop them into any ComfyUI graph and they function as standalone utility nodes.
+Save As, API Call, and LLM Config work independently in any workflow — no pipeline required. Drop them into any ComfyUI graph and they function as standalone utility nodes.
 
 ## License
 
