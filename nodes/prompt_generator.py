@@ -1,9 +1,9 @@
-"""PromptGenerator node — generates prompt variants with three source strategies."""
+"""PromptGenerator node — generates prompt variants via mutations or custom list."""
 
 import json
 import os
 
-from ..lib.prompt_mutations import generate_variants, generate_variants_via_llm
+from ..lib.prompt_mutations import generate_variants
 from ..lib.tag_generator import generate_tags
 from ..lib.naming import sanitize_name
 
@@ -33,8 +33,9 @@ class PromptGenerator:
 
     Variant source priority:
         1. prompt_list  — PROMPT_LIST from Prompt List node, picked by variant_index
-        2. llm_config   — one LLM call per topic generates all variants, cached
-        3. (default)    — local mutation strategies, cached
+        2. (default)    — local mutation strategies, cached
+
+    For LLM-enhanced prompts, wire the output through a Prompt Refiner node.
     """
 
     CATEGORY = "Pipeline Automation"
@@ -55,7 +56,6 @@ class PromptGenerator:
             "optional": {
                 "pipeline_config": ("PIPELINE_CONFIG",),
                 "resolution": ("STRING", {"default": "512x512"}),
-                "llm_config": ("LLM_CONFIG",),
                 "prompt_list": ("PROMPT_LIST",),
                 "tag_bank": ("TAG_BANK",),
             },
@@ -64,7 +64,7 @@ class PromptGenerator:
     def generate(self, topic, variant_index, base_prompt_template,
                  base_negative_prompt, prompts_per_topic,
                  pipeline_config=None, resolution="512x512",
-                 llm_config=None, prompt_list=None, tag_bank=None):
+                 prompt_list=None, tag_bank=None):
 
         # PIPELINE_CONFIG overrides manual fields
         if pipeline_config:
@@ -80,7 +80,6 @@ class PromptGenerator:
 
         sanitized_topic = sanitize_name(topic)
         resolved_base = base_prompt_template.replace("{topic}", topic)
-        llm_cfg = llm_config if llm_config and llm_config.get("api_url") else None
 
         # Unpack TAG_BANK
         word_bank_path = None
@@ -90,8 +89,6 @@ class PromptGenerator:
             topic_tag_bank = tag_bank.get("topic_tags")
 
         # --- Priority 1: custom prompt list ---
-        # Bypasses cache — list is user-controlled and may change each run.
-        # Tags use layers 1+2 only (instant, no LLM cost per execution).
         if prompt_list and prompt_list.get("prompts"):
             prompts = prompt_list["prompts"]
             tags, tag_sources = generate_tags(
@@ -99,7 +96,6 @@ class PromptGenerator:
                 base_prompt=resolved_base,
                 resolution=resolution,
                 topic_tag_bank=topic_tag_bank,
-                llm_config=None,
             )
             idx = variant_index % len(prompts)
             prompt = prompts[idx]
@@ -111,7 +107,7 @@ class PromptGenerator:
                 workflow_name, sanitized_topic, tags, tag_sources,
             )
 
-        # --- Priority 2 & 3: cache-backed generation ---
+        # --- Priority 2: cache-backed mutation generation ---
         cache_key = f"{workflow_name}:{sanitized_topic}" if workflow_name else sanitized_topic
         cached = _prompt_cache.get(cache_key)
 
@@ -120,35 +116,17 @@ class PromptGenerator:
             cached = _load_prompt_cache(cache_dir, sanitized_topic)
 
         if cached is None:
-            # Priority 2: LLM generates all variants in one call
-            if llm_cfg:
-                variants = generate_variants_via_llm(
-                    base_prompt=resolved_base,
-                    num_variants=prompts_per_topic,
-                    topic=topic,
-                    llm_config=llm_cfg,
-                )
-                # Fall back to mutations if LLM failed
-                if not variants:
-                    variants = generate_variants(
-                        base_prompt=resolved_base,
-                        num_variants=prompts_per_topic,
-                        custom_word_bank_path=word_bank_path,
-                    )
-            else:
-                # Priority 3: local mutation strategies
-                variants = generate_variants(
-                    base_prompt=resolved_base,
-                    num_variants=prompts_per_topic,
-                    custom_word_bank_path=word_bank_path,
-                )
+            variants = generate_variants(
+                base_prompt=resolved_base,
+                num_variants=prompts_per_topic,
+                custom_word_bank_path=word_bank_path,
+            )
 
             tags, tag_sources = generate_tags(
                 topic=topic,
                 base_prompt=resolved_base,
                 resolution=resolution,
                 topic_tag_bank=topic_tag_bank,
-                llm_config=llm_cfg,
             )
 
             cached = {

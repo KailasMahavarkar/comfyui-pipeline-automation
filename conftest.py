@@ -9,4 +9,5 @@ collect_ignore = [
     "prompt_generator.py",
     "prompt_list.py",
     "tag_bank.py",
+    "prompt_refiner.py",
 ]

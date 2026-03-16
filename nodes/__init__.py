@@ -6,7 +6,8 @@ from .gap_scanner import GapScannerNode
 from .prompt_generator import PromptGenerator
 from .prompt_list import PromptList
 from .tag_bank import TagBank
+from .prompt_refiner import PromptRefiner
 
 __all__ = ["SaveAs", "Webhook", "CRONScheduler",
            "LLMConfig", "GapScannerNode", "PromptGenerator",
-           "PromptList", "TagBank"]
+           "PromptList", "TagBank", "PromptRefiner"]

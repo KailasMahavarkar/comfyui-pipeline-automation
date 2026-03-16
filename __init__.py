@@ -7,7 +7,7 @@ WEB_DIRECTORY = None
 try:
     from .nodes import (SaveAs, Webhook, CRONScheduler,
                         LLMConfig, GapScannerNode, PromptGenerator,
-                        PromptList, TagBank)
+                        PromptList, TagBank, PromptRefiner)
 
     NODE_CLASS_MAPPINGS = {
         "CRONScheduler": CRONScheduler,
@@ -18,6 +18,7 @@ try:
         "Webhook": Webhook,
         "PromptList": PromptList,
         "TagBank": TagBank,
+        "PromptRefiner": PromptRefiner,
     }
 
     NODE_DISPLAY_NAME_MAPPINGS = {
@@ -29,6 +30,7 @@ try:
         "Webhook": "Webhook",
         "PromptList": "Prompt List",
         "TagBank": "Tag Bank",
+        "PromptRefiner": "Prompt Refiner",
     }
 except ImportError:
     pass
