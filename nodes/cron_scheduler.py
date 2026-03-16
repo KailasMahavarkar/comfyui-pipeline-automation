@@ -10,6 +10,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 SCHEDULE_PRESETS = {
+    "Continuous": 5,
     "Every 1 min": 60,
     "Every 5 min": 300,
     "Every 15 min": 900,
