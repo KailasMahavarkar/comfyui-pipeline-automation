@@ -1,5 +1,9 @@
 # ComfyUI Pipeline Automation
 
+[![CI](https://github.com/KailasMahavarkar/comfyui-pipeline-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/KailasMahavarkar/comfyui-pipeline-automation/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 Automated batch image generation for ComfyUI. Turns manual one-at-a-time workflows into unattended, crash-proof production pipelines that can generate thousands of organized, metadata-rich outputs overnight.
 
 ## Installation
