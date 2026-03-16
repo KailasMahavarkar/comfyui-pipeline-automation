@@ -1,4 +1,4 @@
-"""CRON Scheduler node — re-queues workflow on cron schedule via background thread."""
+"""CRON Scheduler node — re-queues workflow on interval via background thread."""
 
 import json
 import threading
@@ -10,15 +10,14 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 SCHEDULE_PRESETS = {
-    "Custom": None,
-    "Every 1 min": "*/1 * * * *",
-    "Every 5 min": "*/5 * * * *",
-    "Every 15 min": "*/15 * * * *",
-    "Every 30 min": "*/30 * * * *",
-    "Hourly": "0 * * * *",
-    "Every 6 hours": "0 */6 * * *",
-    "Daily at midnight": "0 0 * * *",
-    "Daily at 9 AM": "0 9 * * *",
+    "Every 1 min": 60,
+    "Every 5 min": 300,
+    "Every 15 min": 900,
+    "Every 30 min": 1800,
+    "Hourly": 3600,
+    "Every 6 hours": 21600,
+    "Every 12 hours": 43200,
+    "Daily": 86400,
 }
 
 # Module-level state for single-instance lock
@@ -65,24 +64,13 @@ def _requeue_workflow(api_url: str, workflow: dict | None = None):
         logger.error(f"Failed to re-queue workflow: {e}")
 
 
-def _scheduler_loop(cron_expr: str, api_url: str, mode: str,
+def _scheduler_loop(interval_seconds: int, api_url: str, mode: str,
                     external_command: str, max_iterations: int):
-    """Background thread loop for cron scheduling."""
+    """Background thread loop for interval-based scheduling."""
     global _run_count
-    from croniter import croniter
-
-    cron = croniter(cron_expr, datetime.now())
 
     while not _scheduler_stop.is_set():
-        next_time = cron.get_next(datetime)
-        now = datetime.now()
-        wait_seconds = (next_time - now).total_seconds()
-
-        if wait_seconds > 0:
-            if _scheduler_stop.wait(timeout=wait_seconds):
-                break
-
-        if _scheduler_stop.is_set():
+        if _scheduler_stop.wait(timeout=interval_seconds):
             break
 
         # Skip-if-busy guard
@@ -115,7 +103,7 @@ def _scheduler_loop(cron_expr: str, api_url: str, mode: str,
 
 
 class CRONScheduler:
-    """Re-queues workflow on cron schedule via background thread.
+    """Re-queues workflow on interval via background thread.
     Marked as OUTPUT_NODE so it always executes without needing a passthrough."""
 
     CATEGORY = "Pipeline Automation"
@@ -129,7 +117,7 @@ class CRONScheduler:
         return {
             "required": {
                 "schedule_preset": (list(SCHEDULE_PRESETS.keys()),),
-                "cron_expression": ("STRING", {"default": "*/5 * * * *"}),
+                "interval_seconds": ("INT", {"default": 60, "min": 10, "max": 86400}),
                 "enabled": ("BOOLEAN", {"default": False}),
                 "mode": (["requeue_workflow", "run_command", "both"],),
                 "comfyui_api_url": ("STRING", {"default": "http://127.0.0.1:8188"}),
@@ -141,16 +129,13 @@ class CRONScheduler:
             },
         }
 
-    def schedule(self, schedule_preset, cron_expression, enabled, mode,
+    def schedule(self, schedule_preset, interval_seconds, enabled, mode,
                  comfyui_api_url, max_iterations,
                  external_command="", is_complete=False):
         global _scheduler_thread, _run_count
 
-        # Determine actual cron expression
-        if schedule_preset != "Custom" and schedule_preset in SCHEDULE_PRESETS:
-            actual_cron = SCHEDULE_PRESETS[schedule_preset]
-        else:
-            actual_cron = cron_expression
+        # Preset overrides manual interval
+        actual_interval = SCHEDULE_PRESETS.get(schedule_preset, interval_seconds)
 
         # Handle DONE signal
         if is_complete:
@@ -170,19 +155,15 @@ class CRONScheduler:
 
         _scheduler_thread = threading.Thread(
             target=_scheduler_loop,
-            args=(actual_cron, comfyui_api_url, mode, external_command, max_iterations),
+            args=(actual_interval, comfyui_api_url, mode, external_command, max_iterations),
             daemon=True,
             name="CRONScheduler",
         )
         _scheduler_thread.start()
 
-        # Calculate next run for status
-        from croniter import croniter
-        cron = croniter(actual_cron, datetime.now())
-        next_run = cron.get_next(datetime)
-
-        preset_label = schedule_preset if schedule_preset != "Custom" else actual_cron
-        status = f"ON | {preset_label} | next: {next_run.isoformat()} | runs: {_run_count}"
+        next_run = datetime.now().timestamp() + actual_interval
+        next_dt = datetime.fromtimestamp(next_run)
+        status = f"ON | every {actual_interval}s | next: {next_dt.strftime('%H:%M:%S')} | runs: {_run_count}"
 
         return (status,)
 

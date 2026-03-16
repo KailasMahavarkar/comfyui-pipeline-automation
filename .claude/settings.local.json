@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(node:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cd:*)"
     ]
   }
 }

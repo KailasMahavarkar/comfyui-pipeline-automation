@@ -32,7 +32,6 @@ def verify_imports():
         ("PIL", "Pillow"),
         ("numpy", "numpy"),
         ("piexif", "piexif"),
-        ("croniter", "croniter"),
     ]
     failed = []
     for module, package in imports:

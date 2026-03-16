@@ -24,7 +24,6 @@ Restart ComfyUI. All nodes appear under **Pipeline Automation** in the node menu
 - Pillow >= 9.0.0
 - numpy >= 1.20.0
 - piexif >= 1.1.3
-- croniter >= 1.0.0
 
 ## Pipeline Flow
 
@@ -160,8 +159,8 @@ Re-queues the current workflow on a schedule via a background thread. Skips tick
 
 | Input | Type | Default | Description |
 |-------|------|---------|-------------|
-| `schedule_preset` | ENUM | — | Every 1 min, Every 5 min, Every 15 min, Every 30 min, Hourly, Every 6 hours, Daily at midnight, Daily at 9 AM, Custom |
-| `cron_expression` | STRING | `*/5 * * * *` | Cron expression (used when preset is Custom) |
+| `schedule_preset` | ENUM | — | Every 1 min, Every 5 min, Every 15 min, Every 30 min, Hourly, Every 6 hours, Every 12 hours, Daily |
+| `interval_seconds` | INT | `60` | Custom interval in seconds (10–86400) |
 | `enabled` | BOOLEAN | `false` | Enable/disable scheduling |
 | `mode` | ENUM | `requeue_workflow` | requeue_workflow, run_command, both |
 | `comfyui_api_url` | STRING | `http://127.0.0.1:8188` | ComfyUI API endpoint |
