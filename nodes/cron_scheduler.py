@@ -77,12 +77,14 @@ def _fetch_last_prompt(api_url: str) -> dict | None:
 
 
 def _check_prompt_completed(api_url: str, prompt_id: str) -> bool:
-    """Check if a specific prompt_id completed via /history."""
+    """Check if a specific prompt_id completed successfully via /history."""
     try:
         req = urllib.request.Request(f"{api_url.rstrip('/')}/history/{prompt_id}")
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        return prompt_id in data
+        entry = data.get(prompt_id, {})
+        status = entry.get("status", {})
+        return status.get("completed", False) is True
     except Exception:
         return False
 
