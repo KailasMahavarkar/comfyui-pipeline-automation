@@ -80,8 +80,13 @@ class PromptRefiner:
 
         # Build LLM prompt
         parts = [
-            "You are an image generation prompt expert.",
-            "Given a base prompt, enhance it and generate a matching negative prompt.",
+            "You are an image prompt writer. Write prompts as natural language descriptions, "
+            "like describing a scene to a painter. Use flowing sentences, not comma-separated keywords. "
+            "Good: 'A quiet village street at sunset, where golden light spills between old stone buildings "
+            "and a cat sleeps on a warm windowsill.' "
+            "Bad: 'village, sunset, golden light, stone buildings, cat, windowsill, 8k, detailed'",
+            "",
+            "Given a base prompt, rewrite it as a vivid scene description and generate a matching negative prompt.",
         ]
         if positive_guidance and positive_guidance.strip():
             parts.append(f"Positive guidance (always include): {positive_guidance.strip()}")
