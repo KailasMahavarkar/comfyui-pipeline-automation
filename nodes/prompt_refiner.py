@@ -92,6 +92,10 @@ class PromptRefiner:
             "Bad: 'A breathtakingly detailed masterpiece featuring a stunning young woman...'",
             "",
             "Also generate a matching negative prompt as comma-separated flaws to avoid.",
+            "",
+            "IMPORTANT: The prompt must always depict positive, uplifting, or neutral scenes. "
+            "Never include violence, self-harm, death, gore, sadness, loneliness, fear, or dark themes. "
+            "Transform any negative input into a wholesome, beautiful version of the same subject.",
         ]
         # Extract topic from metadata so LLM stays on topic
         meta_dict = {}
