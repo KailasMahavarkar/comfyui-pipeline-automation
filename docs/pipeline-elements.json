@@ -1,0 +1,37 @@
+[
+  { "type": "text", "text": "ComfyUI Pipeline Automation", "position": "above" },
+
+  { "type": "zone", "id": "config_zone", "label": "Config & Input", "children": ["gap_scanner", "llm_config"] },
+  { "type": "zone", "id": "prompt_zone", "label": "Prompt Generation", "children": ["prompt_generator", "api_call"] },
+  { "type": "zone", "id": "diffusion_zone", "label": "ComfyUI Diffusion", "children": ["empty_latent", "clip_pos", "clip_neg", "ksampler", "vae_decode"] },
+  { "type": "zone", "id": "output_zone", "label": "Scheduling & Output", "children": ["cron_scheduler", "save_as"] },
+
+  { "type": "rectangle", "id": "gap_scanner",      "text": "Gap Scanner",      "backgroundColor": "#74c0fc" },
+  { "type": "rectangle", "id": "llm_config",        "text": "LLM Config",        "backgroundColor": "#b197fc" },
+  { "type": "rectangle", "id": "prompt_generator",  "text": "Prompt Generator",  "backgroundColor": "#74c0fc" },
+  { "type": "rectangle", "id": "api_call",           "text": "API Call",           "backgroundColor": "#b197fc" },
+  { "type": "rectangle", "id": "empty_latent",       "text": "Empty Latent",       "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "clip_pos",           "text": "CLIP Encode (+)",    "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "clip_neg",           "text": "CLIP Encode (−)",    "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "ksampler",           "text": "KSampler",           "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "vae_decode",         "text": "VAE Decode",         "backgroundColor": "#ced4da" },
+  { "type": "rectangle", "id": "cron_scheduler",     "text": "CRON Scheduler",     "backgroundColor": "#74c0fc" },
+  { "type": "rectangle", "id": "save_as",            "text": "Save As",            "backgroundColor": "#74c0fc" },
+
+  { "type": "arrow", "from": "gap_scanner",     "to": "prompt_generator", "text": "topic / resolution / variant_index" },
+  { "type": "arrow", "from": "gap_scanner",     "to": "empty_latent",     "text": "width / height" },
+  { "type": "arrow", "from": "gap_scanner",     "to": "cron_scheduler",   "text": "is_complete" },
+  { "type": "arrow", "from": "gap_scanner",     "to": "prompt_generator", "text": "PIPELINE_CONFIG", "strokeStyle": "dashed" },
+  { "type": "arrow", "from": "gap_scanner",     "to": "save_as",          "text": "PIPELINE_CONFIG", "strokeStyle": "dashed" },
+  { "type": "arrow", "from": "llm_config",      "to": "prompt_generator", "text": "LLM_CONFIG" },
+  { "type": "arrow", "from": "llm_config",      "to": "api_call",         "text": "LLM_CONFIG" },
+  { "type": "arrow", "from": "prompt_generator","to": "clip_pos",         "text": "prompt" },
+  { "type": "arrow", "from": "prompt_generator","to": "clip_neg",         "text": "negative" },
+  { "type": "arrow", "from": "prompt_generator","to": "save_as",          "text": "metadata" },
+  { "type": "arrow", "from": "empty_latent",    "to": "ksampler" },
+  { "type": "arrow", "from": "clip_pos",        "to": "ksampler" },
+  { "type": "arrow", "from": "clip_neg",        "to": "ksampler" },
+  { "type": "arrow", "from": "ksampler",        "to": "vae_decode" },
+  { "type": "arrow", "from": "vae_decode",      "to": "cron_scheduler",   "text": "image" },
+  { "type": "arrow", "from": "cron_scheduler",  "to": "save_as",          "text": "passthrough" }
+]
