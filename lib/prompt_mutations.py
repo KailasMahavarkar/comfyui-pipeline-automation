@@ -245,22 +245,18 @@ def generate_variants_via_llm(base_prompt: str, num_variants: int,
     if not api_url:
         return []
 
-    system_msg = (
-        "You are an image prompt variation generator. "
-        f"Generate {num_variants} distinct image generation prompts based on the given topic and base prompt. "
-        "Return ONLY a JSON array of strings. Each string must be a complete, standalone prompt. "
-        "Vary style, mood, composition, and details across variants."
-    )
     user_msg = (
+        f"You are an image prompt variation generator. "
+        f"Generate {num_variants} distinct image generation prompts based on this topic and base prompt. "
+        f"Vary style, mood, composition, and details across variants.\n\n"
         f"Topic: {topic}\n"
         f"Base prompt: {base_prompt}\n\n"
-        f"Return a JSON array of {num_variants} prompt strings."
+        f"Return ONLY a JSON array of {num_variants} prompt strings. No explanation, no markdown."
     )
 
     body = json.dumps({
         "model": model,
         "messages": [
-            {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ],
         "temperature": temperature,

@@ -86,19 +86,18 @@ def generate_via_llm(topic: str, base_prompt: str,
     import urllib.request
     import urllib.error
 
-    system_msg = (
+    user_msg = (
         "You are a tag generator for image organization. "
-        "Given a topic and prompt, generate categorized tags. "
+        "Given a topic and prompt, generate categorized tags.\n\n"
+        f"Topic: {topic}\nPrompt: {base_prompt}\n\n"
         "Return ONLY valid JSON with keys: content (list), style (list), mood (list). "
-        "Each list should have 3-5 relevant tags. Tags should be lowercase, underscore-separated."
+        "Each list should have 3-5 relevant tags. Tags should be lowercase, underscore-separated. "
+        "No explanation, no markdown."
     )
-
-    user_msg = f"Topic: {topic}\nPrompt: {base_prompt}\n\nGenerate categorized tags as JSON."
 
     body = json.dumps({
         "model": model,
         "messages": [
-            {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ],
         "temperature": temperature,
