@@ -6,7 +6,14 @@
       "Bash(cd:*)",
       "WebFetch(domain:docs.ollama.com)",
       "Bash(python:*)",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Read(//c/codingFiles/kai/excalidraw-ai-cli/**)",
+      "Bash(npx ts-node:*)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(npx exai:*)"
     ]
   }
 }

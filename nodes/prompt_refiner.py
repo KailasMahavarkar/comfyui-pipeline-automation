@@ -162,12 +162,6 @@ class PromptRefiner:
 
             _refine_cache[cache_key] = (refined, negative)
             logger.info("Prompt refined: '%s...' → '%s...'", prompt[:40], refined[:40])
-
-            # Update metadata with refined prompt so SaveAs embeds the correct one
-            if meta_dict:
-                meta_dict["prompt"] = refined
-                metadata = json.dumps(meta_dict, ensure_ascii=False)
-
             return (refined, negative, metadata)
 
         except Exception as e:
