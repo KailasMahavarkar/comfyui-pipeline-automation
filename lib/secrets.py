@@ -13,7 +13,6 @@ _DEFAULT_KEYS = {
     "openai": "",
     "ollama_local": "",
     "ollama_cloud": "",
-    "lm_studio": "",
 }
 
 # In-memory cache: (mtime, parsed_dict)

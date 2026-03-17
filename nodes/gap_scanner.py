@@ -74,6 +74,9 @@ class GapScannerNode:
             return (512, 512, False, "ERROR: workflow_name is required", cfg)
 
         workflow_name = sanitize_name(workflow_name)
+        if not workflow_name:
+            cfg = self._build_config("", output_dir, format, prompts_per_topic)
+            return (512, 512, False, "ERROR: workflow_name is invalid after sanitization", cfg)
 
         # Parse inputs
         topics = [t.strip() for t in topic_list.strip().splitlines() if t.strip()]
