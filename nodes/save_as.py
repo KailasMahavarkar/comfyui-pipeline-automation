@@ -56,13 +56,6 @@ class SaveAs:
             except json.JSONDecodeError:
                 pass
 
-        # Metadata pipeline overrides manual fields
-        pipeline = meta_dict.get("pipeline", {})
-        if pipeline.get("output_dir"):
-            output_dir = pipeline["output_dir"]
-        if pipeline.get("format"):
-            format = pipeline["format"]
-
         # Skip saving when pipeline is complete (no topic = nothing to save)
         if not meta_dict.get("pipeline", {}).get("topic"):
             return ("",)
