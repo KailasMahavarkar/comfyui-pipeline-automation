@@ -43,6 +43,8 @@ Fill in your keys. The file is never stored in workflow JSON — only the key **
 
 ## Pipeline Flow
 
+![Pipeline Flow](docs/pipeline-flow.png)
+
 ```
 [Gap Scanner] ─── pipeline_config ───→ [Prompt Generator]
     │                                        │
