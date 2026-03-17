@@ -5,6 +5,7 @@ import logging
 import urllib.request
 
 from ..lib.response_parser import auto_parse_json
+from ..lib.secrets import get_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +13,16 @@ logger = logging.getLogger(__name__)
 _refine_cache: dict[str, tuple[str, str]] = {}
 
 PROVIDER_URLS = {
-    "OpenRouter": "https://openrouter.ai/api/v1/chat/completions",
-    "OpenAI": "https://api.openai.com/v1/chat/completions",
-    "Ollama (local)": "http://localhost:11434/api/chat",
-    "Ollama Cloud": "https://ollama.com/api/chat",
-    "LM Studio": "http://localhost:1234/v1/chat/completions",
-    "Custom": "",
+    "openrouter": "https://openrouter.ai/api/v1/chat/completions",
+    "openai": "https://api.openai.com/v1/chat/completions",
+    "ollama_local": "http://localhost:11434/api/chat",
+    "ollama_cloud": "https://ollama.com/api/chat",
+    "lm_studio": "http://localhost:1234/v1/chat/completions",
+    "custom": "",
 }
 
 # Providers that use Ollama's native API format instead of OpenAI format
-_OLLAMA_PROVIDERS = {"Ollama (local)", "Ollama Cloud"}
+_OLLAMA_PROVIDERS = {"ollama_local", "ollama_cloud"}
 
 
 class PromptRefiner:
@@ -45,7 +46,7 @@ class PromptRefiner:
                 "metadata": ("STRING", {"forceInput": True}),
                 "provider": (list(PROVIDER_URLS.keys()),),
                 "model": ("STRING", {"default": "google/gemini-3.1-flash-lite-preview"}),
-                "api_key": ("STRING", {"default": ""}),
+                "api_key_name": ("STRING", {"default": ""}),
             },
             "optional": {
                 "api_url_override": ("STRING", {"default": ""}),
@@ -62,9 +63,9 @@ class PromptRefiner:
             },
         }
 
-    def refine(self, prompt, negative_prompt, metadata, provider, model, api_key,
-               api_url_override="", temperature=0.7, max_tokens=500,
-               positive_guidance="", negative_guidance=""):
+    def refine(self, prompt, negative_prompt, metadata, provider, model,
+               api_key_name="", api_url_override="", temperature=0.7,
+               max_tokens=500, positive_guidance="", negative_guidance=""):
 
         if not prompt or not prompt.strip():
             return ("", negative_prompt, metadata)
@@ -146,6 +147,7 @@ class PromptRefiner:
             }).encode("utf-8")
 
         headers = {"Content-Type": "application/json"}
+        api_key = get_api_key(api_key_name or provider)
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 

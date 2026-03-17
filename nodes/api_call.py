@@ -7,6 +7,7 @@ import urllib.error
 import logging
 
 from ..lib.response_parser import extract_mappings, auto_parse_json
+from ..lib.secrets import get_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class Webhook:
                 "body": ("STRING", {"multiline": True, "default": ""}),
                 "headers": ("STRING", {"multiline": True, "default": ""}),
                 "response_mapping": ("STRING", {"default": ""}),
-                "api_key": ("STRING", {"default": ""}),
+                "api_key_name": ("STRING", {"default": ""}),
                 "timeout": ("INT", {"default": 30, "min": 5, "max": 300}),
                 "max_retries": ("INT", {"default": 3, "min": 0, "max": 10}),
                 "retry_delay": ("INT", {"default": 2, "min": 1, "max": 30}),
@@ -42,8 +43,8 @@ class Webhook:
 
     def call(self, url, method,
              body="", headers="", response_mapping="",
-             api_key="", timeout=30, max_retries=3, retry_delay=2,
-             topic="", passthrough=None):
+             api_key_name="", timeout=30, max_retries=3,
+             retry_delay=2, topic="", passthrough=None):
 
         if not url:
             return ('{"error": "No URL provided"}', 0, "{}")
@@ -55,6 +56,7 @@ class Webhook:
 
         # Build headers
         req_headers = {"Content-Type": "application/json"}
+        api_key = get_api_key(api_key_name)
         if api_key:
             req_headers["Authorization"] = f"Bearer {api_key}"
         if headers:
