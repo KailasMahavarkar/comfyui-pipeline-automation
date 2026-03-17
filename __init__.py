@@ -6,7 +6,8 @@ WEB_DIRECTORY = None
 
 try:
     from .nodes import (SaveAs, Webhook, CRONScheduler,
-                        GapScannerNode, PromptGenerator, PromptRefiner)
+                        GapScannerNode, PromptGenerator, PromptRefiner,
+                        OpenRouterProvider, OpenAIProvider, OllamaProvider)
 
     NODE_CLASS_MAPPINGS = {
         "CRONScheduler": CRONScheduler,
@@ -15,6 +16,9 @@ try:
         "SaveAs": SaveAs,
         "Webhook": Webhook,
         "PromptRefiner": PromptRefiner,
+        "OpenRouterProvider": OpenRouterProvider,
+        "OpenAIProvider": OpenAIProvider,
+        "OllamaProvider": OllamaProvider,
     }
 
     NODE_DISPLAY_NAME_MAPPINGS = {
@@ -24,6 +28,9 @@ try:
         "SaveAs": "Save As",
         "Webhook": "Webhook",
         "PromptRefiner": "Prompt Refiner",
+        "OpenRouterProvider": "OpenRouter Provider",
+        "OpenAIProvider": "OpenAI Provider",
+        "OllamaProvider": "Ollama Provider",
     }
 except ImportError:
     pass

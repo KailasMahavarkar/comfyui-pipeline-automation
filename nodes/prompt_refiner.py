@@ -5,24 +5,11 @@ import logging
 import urllib.request
 
 from ..lib.response_parser import auto_parse_json
-from ..lib.secrets import get_api_key
 
 logger = logging.getLogger(__name__)
 
 # Cache: input prompt → (refined_prompt, refined_negative)
 _refine_cache: dict[str, tuple[str, str]] = {}
-
-PROVIDER_URLS = {
-    "openrouter": "https://openrouter.ai/api/v1/chat/completions",
-    "openai": "https://api.openai.com/v1/chat/completions",
-    "ollama_local": "http://localhost:11434/api/chat",
-    "ollama_cloud": "https://ollama.com/api/chat",
-    "lm_studio": "http://localhost:1234/v1/chat/completions",
-    "custom": "",
-}
-
-# Providers that use Ollama's native API format instead of OpenAI format
-_OLLAMA_PROVIDERS = {"ollama_local", "ollama_cloud"}
 
 
 class PromptRefiner:
@@ -44,14 +31,10 @@ class PromptRefiner:
                 "prompt": ("STRING", {"forceInput": True}),
                 "negative_prompt": ("STRING", {"forceInput": True}),
                 "metadata": ("STRING", {"forceInput": True}),
-                "provider": (list(PROVIDER_URLS.keys()),),
-                "model": ("STRING", {"default": "google/gemini-3.1-flash-lite-preview"}),
-                "api_key_name": ("STRING", {"default": ""}),
+                "llm_config": ("LLM_CONFIG",),
             },
             "optional": {
                 "api_url_override": ("STRING", {"default": ""}),
-                "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.05}),
-                "max_tokens": ("INT", {"default": 1024, "min": 100, "max": 4096}),
                 "positive_guidance": ("STRING", {
                     "multiline": True,
                     "default": "",
@@ -63,17 +46,20 @@ class PromptRefiner:
             },
         }
 
-    def refine(self, prompt, negative_prompt, metadata, provider, model,
-               api_key_name="", api_url_override="", temperature=0.7,
-               max_tokens=500, positive_guidance="", negative_guidance=""):
+    def refine(self, prompt, negative_prompt, metadata, llm_config,
+               api_url_override="", positive_guidance="", negative_guidance=""):
 
         if not prompt or not prompt.strip():
             return ("", negative_prompt, metadata)
 
-        # Resolve API URL
-        api_url = api_url_override.strip() if api_url_override and api_url_override.strip() else PROVIDER_URLS.get(provider, "")
+        # Extract config
+        api_url = api_url_override.strip() if api_url_override and api_url_override.strip() else llm_config.get("api_url", "")
+        api_key = llm_config.get("api_key", "")
+        model = llm_config.get("model", "")
+        llm_format = llm_config.get("format", "openai")
+        temperature = llm_config.get("temperature", 0.7)
+        max_tokens = llm_config.get("max_tokens", 1024)
 
-        # No API URL — pass through without refinement
         if not api_url:
             return (prompt, negative_prompt, metadata)
 
@@ -130,7 +116,7 @@ class PromptRefiner:
 
         user_msg = "\n".join(parts)
 
-        is_ollama = provider in _OLLAMA_PROVIDERS
+        is_ollama = llm_format == "ollama"
 
         if is_ollama:
             body = json.dumps({
@@ -147,7 +133,6 @@ class PromptRefiner:
             }).encode("utf-8")
 
         headers = {"Content-Type": "application/json"}
-        api_key = get_api_key(api_key_name or provider)
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
