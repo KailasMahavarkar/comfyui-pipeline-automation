@@ -14,10 +14,14 @@ _refine_cache: dict[str, tuple[str, str]] = {}
 PROVIDER_URLS = {
     "OpenRouter": "https://openrouter.ai/api/v1/chat/completions",
     "OpenAI": "https://api.openai.com/v1/chat/completions",
-    "Ollama": "http://localhost:11434/v1/chat/completions",
+    "Ollama (local)": "http://localhost:11434/api/chat",
+    "Ollama Cloud": "https://ollama.com/api/chat",
     "LM Studio": "http://localhost:1234/v1/chat/completions",
     "Custom": "",
 }
+
+# Providers that use Ollama's native API format instead of OpenAI format
+_OLLAMA_PROVIDERS = {"Ollama (local)", "Ollama Cloud"}
 
 
 class PromptRefiner:
@@ -125,12 +129,21 @@ class PromptRefiner:
 
         user_msg = "\n".join(parts)
 
-        body = json.dumps({
-            "model": model,
-            "messages": [{"role": "user", "content": user_msg}],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }).encode("utf-8")
+        is_ollama = provider in _OLLAMA_PROVIDERS
+
+        if is_ollama:
+            body = json.dumps({
+                "model": model,
+                "messages": [{"role": "user", "content": user_msg}],
+                "stream": False,
+            }).encode("utf-8")
+        else:
+            body = json.dumps({
+                "model": model,
+                "messages": [{"role": "user", "content": user_msg}],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }).encode("utf-8")
 
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -138,10 +151,14 @@ class PromptRefiner:
 
         try:
             req = urllib.request.Request(api_url, data=body, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 result = json.loads(resp.read().decode("utf-8"))
 
-            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            # Ollama returns message.content, OpenAI returns choices[0].message.content
+            if is_ollama:
+                content = result.get("message", {}).get("content", "")
+            else:
+                content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
             parsed = auto_parse_json(content.strip())
 
             if isinstance(parsed, dict):

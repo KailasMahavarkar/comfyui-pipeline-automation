@@ -3,7 +3,10 @@
     "allow": [
       "Bash(node:*)",
       "WebSearch",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "WebFetch(domain:docs.ollama.com)",
+      "Bash(python:*)",
+      "Bash(python -c \":*)"
     ]
   }
 }
