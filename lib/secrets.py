@@ -6,7 +6,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_KEY_FILE = os.path.join("input", "automation_api_keys.json")
+try:
+    import folder_paths
+    _KEY_FILE = os.path.join(folder_paths.get_input_directory(), "automation_api_keys.json")
+except ImportError:
+    _KEY_FILE = os.path.join("input", "automation_api_keys.json")
 
 _DEFAULT_KEYS = {
     "openrouter": "",

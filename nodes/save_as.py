@@ -11,6 +11,7 @@ from ..lib.metadata import embed_metadata as do_embed_metadata
 from ..lib.sidecar import write_sidecar as do_write_sidecar
 from ..lib.manifest import append_manifest
 from ..lib.tag_generator import flatten_tags
+from ..lib.paths import resolve_output_dir
 
 
 class SaveAs:
@@ -47,6 +48,8 @@ class SaveAs:
     def save(self, image, format, quality, naming_preset, filename_prefix,
              subfolder_template, embed_metadata, write_sidecar, write_manifest,
              naming_template="", metadata="", output_dir="output"):
+
+        output_dir = resolve_output_dir(output_dir)
 
         # Parse metadata JSON
         meta_dict = {}

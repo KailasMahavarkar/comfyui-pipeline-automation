@@ -5,6 +5,7 @@ import os
 
 from ..lib.scanner import GapScanner as Scanner
 from ..lib.naming import sanitize_name
+from ..lib.paths import resolve_output_dir
 
 # Module-level cache for scanner instances (persists across runs)
 _scanners: dict[str, Scanner] = {}
@@ -68,6 +69,8 @@ class GapScannerNode:
     def scan(self, workflow_name, topic_list, resolution_list,
              prompts_per_topic,
              output_dir="output", format="png", reset_workflow=False):
+
+        output_dir = resolve_output_dir(output_dir)
 
         if not workflow_name:
             cfg = self._build_config("", output_dir, format, prompts_per_topic)
