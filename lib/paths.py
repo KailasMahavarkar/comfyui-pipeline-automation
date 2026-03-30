@@ -16,8 +16,10 @@ def resolve_output_dir(output_dir: str) -> str:
     """Resolve output_dir to an absolute path.
 
     If the user provides an absolute path, use it as-is.
+    Expands ~ to the user's home directory.
     If relative (e.g. "output"), resolve it from ComfyUI's base directory.
     """
+    output_dir = os.path.expanduser(output_dir)
     if os.path.isabs(output_dir):
         return output_dir
     return os.path.join(_get_comfyui_base(), output_dir)
