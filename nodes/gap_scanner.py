@@ -114,14 +114,17 @@ class GapScannerNode:
         sanitized_topics = [sanitize_name(t) for t in topics]
         matrix = scanner.build_matrix(sanitized_topics, resolutions, prompts_per_topic)
 
-        # Find first gap
-        gap = scanner.find_first_gap(matrix, format, skipped)
+        # Find all gaps at once
+        all_gaps = scanner.find_gaps(matrix, format, skipped)
 
-        if gap is None:
+        if not all_gaps:
             total = len(matrix)
             status = f"{workflow_name} | COMPLETE | {total}/{total} (100%)"
             cfg = self._build_config(workflow_name, output_dir, format, prompts_per_topic)
             return (512, 512, True, status, cfg)
+
+        gap = all_gaps[0]
+        is_last_gap = len(all_gaps) == 1
 
         topic = gap["topic"]
         resolution = gap["resolution"]
@@ -135,7 +138,7 @@ class GapScannerNode:
 
         # Build status
         total = len(matrix)
-        existing = total - len(scanner.find_gaps(matrix, format, skipped))
+        existing = total - len(all_gaps)
         global_index = existing + 1
 
         topic_idx_display = sanitized_topics.index(topic) + 1 if topic in sanitized_topics else 0
@@ -152,7 +155,7 @@ class GapScannerNode:
                                  topic=original_topic, resolution=resolution,
                                  variant_index=variant_index)
 
-        return (width, height, False, status, cfg)
+        return (width, height, is_last_gap, status, cfg)
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
