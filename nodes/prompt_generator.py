@@ -6,6 +6,7 @@ import os
 from ..lib.prompt_mutations import generate_variants
 from ..lib.tag_generator import generate_tags
 from ..lib.naming import sanitize_name
+from ..lib.paths import resolve_output_dir
 
 # Module-level cache for generated prompts (persists across runs)
 _prompt_cache: dict[str, dict] = {}
@@ -53,7 +54,7 @@ class PromptGenerator:
     def generate(self, pipeline_config, base_prompt_template, base_negative_prompt):
 
         workflow_name = pipeline_config.get("workflow_name", "")
-        output_dir = pipeline_config.get("output_dir", "output")
+        output_dir = resolve_output_dir(pipeline_config.get("output_dir", "output"))
         prompts_per_topic = pipeline_config.get("prompts_per_topic", 50)
         topic = pipeline_config.get("topic", "")
         resolution = pipeline_config.get("resolution", "512x512")
